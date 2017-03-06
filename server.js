@@ -12,8 +12,7 @@ var app = express();
 app.use(express.static('./public')); //working directory
 //Specifying the public folder of the server to make the html accesible using the static middleware
  
-var server=http.createServer(app).listen(443); //port
-//Server listens on the port 80
+var server=http.createServer(app).listen(80); //Server listens on the port 80
 io = io.listen(server); 
 /*initializing the websockets communication , server instance has to be sent as the argument */
  
@@ -54,7 +53,7 @@ io.sockets.on("connection",function(socket){
 			});
 		} else if(data.message == 'prox'){
 			console.log('proximity sensor command recieved! ');
-			const prox = spawn('./public/scripts/distanceSensor.py');
+			const prox = spawn('./scripts/distanceSensor.py');
 			prox.stdout.on('data', (data) => {
 				var ack_to_client = {
 					data:'Distance is:  ' + data + 'cm'

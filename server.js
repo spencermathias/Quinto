@@ -9,10 +9,10 @@ function sleep(ms) {
 }
  
 var app = express();
-app.use(express.static('./public')); //working directory
+app.use(express.static('./webpage')); //working directory
 //Specifying the public folder of the server to make the html accesible using the static middleware
  
-var server=http.createServer(app).listen(80); //Server listens on the port 80
+var server=http.createServer(app).listen(8080); //Server listens on the port 80
 io = io.listen(server); 
 /*initializing the websockets communication , server instance has to be sent as the argument */
  

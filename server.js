@@ -12,7 +12,7 @@ var app = express();
 app.use(express.static('./webpage')); //working directory
 //Specifying the public folder of the server to make the html accesible using the static middleware
  
-var server=http.createServer(app).listen(8080); //Server listens on the port 80
+var server=http.createServer(app).listen(8124); //Server listens on the port 8124
 io = io.listen(server); 
 /*initializing the websockets communication , server instance has to be sent as the argument */
  
@@ -53,21 +53,25 @@ io.sockets.on("connection",function(socket){
 			});
 		} else if(data.message == 'prox'){
 			console.log('proximity sensor command recieved! ');
-			const prox = spawn('./scripts/distanceSensor.py');
-			prox.stdout.on('data', (data) => {
-				var ack_to_client = {
-					data:'Distance is:  ' + data + 'cm'
-				}
-				socket.send(JSON.stringify(ack_to_client));
-				console.log(""+data);
-			});
-			prox.stderr.on('data', (data) => {
-			  console.log(`stderr: ${data}`);
-			});
+			var a =0;
+			while (a < 100){
+				const prox = spawn('./scripts/distanceSensor.py');
+				prox.stdout.on('data', (data) => {
+					var ack_to_client = {
+						data:'Distance is:  ' + data + 'cm'
+					}
+					socket.send(JSON.stringify(ack_to_client));
+					console.log(""+data);
+				});
+				prox.stderr.on('data', (data) => {
+				  console.log(`stderr: ${data}`);
+				});
 
-			prox.on('close', (code) => {
-			  console.log(`child process exited with code ${code}`);
-			});
+				prox.on('close', (code) => {
+				  console.log(`child process exited with code ${code}`);
+				});
+				a += 1;
+			}
 		} else {
 			var ack_to_client = {
 				data:"Server Received the message" + JSON.stringify(data)

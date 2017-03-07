@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import RPi.GPIO as GPIO
 import datetime
-import MySQLdb
+#import MySQLdb
 import time
 from time import strftime
 
@@ -20,7 +20,7 @@ GPIO.setup(Trig, GPIO.OUT)
 GPIO.setup(Echo, GPIO.IN)
 GPIO.output(Trig, 0)
 
-time.sleep(.001)
+time.sleep(.01)
 
 while 1:
 	GPIO.output(Trig, 1)

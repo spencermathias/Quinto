@@ -18,6 +18,10 @@ To Use:
 
 6. npm install express --save
   The warnings at the end are normal
+  
+7. npm install express-session
+
+8. npm install session-file-store
 
 7. npm install socket.io --save
   The warnings at the end are normal
@@ -27,5 +31,3 @@ To Use:
    This starts a node.js webserver with socket.io to bidirectionally send data between a raspberry pi and a web browser.
 
 4. Go to the ip address of the raspberry pi in a webbrowser. The index.html page should appear.
-
-5. test.

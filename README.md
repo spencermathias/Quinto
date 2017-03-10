@@ -18,10 +18,6 @@ To Use:
 
 6. npm install express --save
   The warnings at the end are normal
-  
-7. npm install express-session
-
-8. npm install session-file-store
 
 7. npm install socket.io --save
   The warnings at the end are normal

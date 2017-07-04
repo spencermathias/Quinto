@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>RAGE by Alan</title>
+		<link rel="icon" type="image/png" href="favicon.png">
+		<link rel="stylesheet" href="css/styles2.css">
+	</head>
+	
+	<body id="body" onresize="resizeCanvas()" onload="startDraw()" >
+		<canvas id="gameBoard" onclick="checkClick(event)"></canvas>
+		
+		<div id='sidebar'>
+			<div id='users' > Users:
+				<div id='userlist'> Users Here </div>
+			</div>
+			<div id='chat'> CHAT: 
+				<div id='chatlog'> </div>
+				<div id='chatbox'>
+					<form action="" method="get" autocomplete="off">
+						<input type="text" id="message"/> <!--text form to send data to the server-->
+						<input type="submit" id="submit" type="button" value="Send" OnClick="return submitButton();">
+					</form>
+				</div>
+			</div>
+		</div>
+	</body>
+
+	<script type="text/javascript" src="js/shapes/rect.js"></script>
+	<script type="text/javascript" src="js/shapes/text.js"></script>
+	<script type="text/javascript" src="js/shapes/roundedRect.js"></script>
+	<script type="text/javascript" src="js/UI.js"></script>
+
+	<script type="text/javascript">
+		
+		function submitButton(){
+			console.log('submitted!');
+			return false; //prevents page from reloading on enter
+		}
+				
+		canvas = document.getElementById("gameBoard");
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+		var ui = new UI(canvas)
+		
+		//sidebar
+
+		var sidebarWidth = 200;
+		var sidebar = new Rect(
+			0,0,0,0,0,
+			'#888888',
+			'none',
+			0);
+		ui.add(sidebar);
+
+		//title
+		var titleThickness = (canvas.width - sidebarWidth)*.20;
+		var titleRect = new Rect(
+			0,0,0,0,0,
+			'#444444',
+			'none',
+			0);
+		ui.add(titleRect);
+		
+		var titleText = new Text(
+			0,0,
+			'RAGE',
+			0,
+			"Arial Black, Gadget, Arial, sans-serif",
+			"center",
+			"middle",
+			0,
+			'#ff0000',
+			'none',
+			1
+		);
+		ui.add(titleText);
+		
+		var subtitleRect = new Rect(
+			0,0,0,0,0,
+			'#888888',
+			'none',
+			0);
+		ui.add(subtitleRect);
+		
+		var subTitleText = new Text(
+			0,0,
+			'CLICK TO START',
+			0,
+			"Arial Black, Gadget, Arial, sans-serif",
+			"center",
+			"middle",
+			0,
+			'#ffffff',
+			'none',
+			1
+		);
+		ui.add(subTitleText);
+		
+		function startDraw(){
+			console.log('loaded!');
+			resizeCanvas();
+			gameLoop();
+		}
+		
+		function gameLoop(){
+			ui.draw();
+			setTimeout(gameLoop,30);
+		}
+		
+		function resizeCanvas(){
+			canvas.width = document.body.clientWidth;
+			canvas.height = document.body.clientHeight;
+			
+			console.log('canvas resized to: ', canvas.width, canvas.height);
+			
+			titleThickness = (canvas.width - sidebarWidth)*.20;
+			//side bar
+			sidebar.x = Math.floor(canvas.width - sidebarWidth/2);
+			sidebar.y = Math.floor(canvas.height/2);
+			sidebar.width = Math.ceil(sidebarWidth);
+			sidebar.height = canvas.height;
+			
+			//title box
+			titleRect.x = Math.floor((canvas.width - sidebarWidth)/2);
+			titleRect.y = Math.floor(canvas.height/2);
+			titleRect.width = Math.ceil((canvas.width - sidebarWidth));
+			titleRect.height = Math.ceil((canvas.width - sidebarWidth)*.2);
+			//title text
+			titleText.x = titleRect.x;
+			titleText.y = titleRect.y ;
+			titleText.fontSize = titleRect.height;
+			
+			//SUBtitle box
+			subtitleRect.x = titleRect.x;
+			subtitleRect.y = Math.floor((canvas.height + titleThickness + (canvas.width - sidebarWidth)*.02)/2);
+			subtitleRect.width = titleRect.width;
+			subtitleRect.height = Math.ceil((canvas.width - sidebarWidth)*.02);
+			//subtitle text
+			subTitleText.x = subtitleRect.x;
+			subTitleText.y = subtitleRect.y;
+			subTitleText.fontSize = subtitleRect.height;
+			
+			ui.updateCanvas();
+		}
+		
+		function checkClick(event){
+			console.log('x:', event.clientX, 'y:', event.clientY);
+			ui.getClicked(event);
+			if(titleText.fillColor == '#ff0000'){
+				titleText.fillColor = '#00ff00';
+			} else {
+				titleText.fillColor = '#ff0000';
+			}
+			titleText.drawOffScreen();
+		}
+	</script>
+</html>

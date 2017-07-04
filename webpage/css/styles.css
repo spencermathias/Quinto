@@ -13,6 +13,7 @@
 	font-variant: normal;
 	font-weight: 900;
 	line-height: 1.25;
+	
 }
 
 #header {
@@ -25,6 +26,13 @@
 	display: flex;
 	flex-direction: row;
 	flex-grow: 100;
+	flex-basis:auto;
+}
+
+#gameAndOverlay{
+	display: flex;
+	flex-direction: column;
+	width:100%;
 }
 
 #content {
@@ -33,17 +41,16 @@
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-	/* border:1px solid #aaaaaa;  */
 	cursor: default;
 }
 
 #gameBoard {
-	display: none;
+	display: none; /* none */
 	flex-grow:1;
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-	/* border:1px solid #aaaaaa;  */
+	/*border:1px solid #ffffff;*/
 	cursor: default;
 }
 
@@ -56,6 +63,8 @@
 	padding: 5px;
 	color: #FFFFFF;
 	background: #888888;
+	overflow: hidden;
+
 }
 
 #footer { 
@@ -75,7 +84,7 @@
 	display: flex;
 	/* font-family: "Arial Black", Gadget, sans-serif; */
 	
-	font-size: 20vw;
+	font-size: 14vw;
 	justify-content: center;
 	align-items: center;
 	width: 100%;
@@ -127,7 +136,57 @@
 }
 
 #chatlog:hover{
-	overflow-y: scroll;
+	/*overflow-y: scroll;/* no need since the scroll bottom locks the scroll bar*/
+}
+
+#bidOverlay{
+	display: none;
+	background: rgba(0,0,0,.5);
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	align-self: flex-start;
+	width: 100%;
+}
+
+#bidTitle{
+	display: flex;
+	margin-top: .5vh;
+	font-size: 3vh;
+	max-height: 30px;
+}
+
+#bidArray{
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: row;
+	margin: .5vh;
+	margin-top: 0;
+	padding: .5vh;
+	width: 100%;
+}
+
+.bidButton {
+	display: flex;
+	/* height: 6vw; */
+
+	flex-grow: 1;
+	background: #aaaaaa;
+	cursor: default;
+	justify-content: center;
+	align-items: center;
+	flex-direction: row;
+	line-height: 1;
+	font-size: 3vh;
+	border-radius: 4px;
+	
+	margin: .5vh;
+	padding: .5vh;
+}
+
+.bidButton::hover{
+	background: #888888;
 }
 
 ::-webkit-scrollbar {

@@ -591,15 +591,14 @@ function checkForAllCards() {
 		if(allIn) {
 			//console.log(__line, "delay start");
 			allIn = false; //prevents triggering during delay
+			gameStatus = gameMode.PLAY;
 			setTimeout(function(){
 				//console.log(__line, "delay end.");
 				io.sockets.emit("allCardsIn");
 				console.log(__line,'all cards in');
-				gameStatus = gameMode.PLAY;
 				whoWinsHand();
 			}, 2000);
 		}
-	
 	}
 }
 

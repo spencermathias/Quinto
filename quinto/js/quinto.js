@@ -67,7 +67,7 @@ class Button {
 
 class Tile extends Button{
 	constructor(tileData, x,y,width,height,fontSize){
-		var text = '-1';
+		var text = -1;
 		var hasData = false;
 		if(tileData != undefined){
 			text = tileData.number
@@ -78,9 +78,9 @@ class Tile extends Button{
 		this.visible = (text >= 0);
 	}
 	
-	drawSelected(ctx){
+	drawOutline(ctx, color){
 		ctx.save();
-		ctx.fillStyle = '#0000ff';
+		ctx.fillStyle = color;
 		roundRect(ctx, this.x-(this.width/2 + tilePadding), this.y-(this.height/2 + tilePadding), this.width+2*tilePadding, this.height+2*tilePadding, this.width/8,true, false);
 		ctx.restore();
 	}
@@ -150,10 +150,28 @@ socket.on('reconnect', function(attempt){
 
 socket.on('connect', function(){
 	//get userName
-	console.log("Connection successful!")
-	var username = prompt('Enter username: ');
-	socket.emit('newUser', username);
+	console.log("Connection successful!");
+	if(localStorage.userName === undefined){
+		changeName(socket.id);
+	} else {
+		socket.emit('userName', localStorage.userName);
+	}
 });
+
+function changeName(userId){
+	if(userId == socket.id){
+		var userName = null;
+		do{
+			userName = prompt('Enter username: ');
+			//console.log(userName);
+			if ((userName == null || userName == "") && localStorage.userName !== undefined){
+				userName = localStorage.userName;
+			}
+		} while (userName === null);
+		localStorage.userName = userName;
+		socket.emit("userName", localStorage.userName);
+	}
+}
 
 /*Initializing the connection with the server via websockets */
 var myTiles = [];
@@ -173,7 +191,7 @@ socket.on("message",function(message){
 	*/
 	//console.log("Message from the server arrived")
 	message = JSON.parse(message);
-	console.log(message); /*converting the data into JS object */
+	//console.log(message); /*converting the data into JS object */
 	
 	$('#chatlog').append('<div style="color:'+message.color+'">'+message.data+'</div>'); /*appending the data on the page using Jquery */
 	$('#response').text(message.data);
@@ -186,7 +204,7 @@ socket.on('userList',function(data){
 	userList = [];
 	for( var i = 0; i < data.length; i++ ){
 		if(data[i].color != spectatorColor){
-			userListString = userListString + '<div style="color: ' + data[i].color + ';">' + data[i].userName + " " + data[i].score + '</div>';
+			userListString = userListString + '<div onclick="changeName(' + "'" + data[i].id + "'" + ')" style="color: ' + data[i].color + ';">' + data[i].userName + " " + data[i].score + '</div>';
 			userList.push(data[i]);
 			if(data[i].id == socket.id){
 				myTurn = (data[i].color == yourTurnColor);
@@ -194,7 +212,7 @@ socket.on('userList',function(data){
 		} else {
 			userListString = userListString + '<div style="color: ' + data[i].color + ';">' + data[i].userName + '</div>';
 		}
-		console.log( "player", data[i].userName, "myTurn", myTurn, "id", data[i].id, socket.id, "color", data[i].color, yourTurnColor);
+		//console.log( "player", data[i].userName, "myTurn", myTurn, "id", data[i].id, socket.id, "color", data[i].color, yourTurnColor);
 		InputList = data;
 	}
 	document.getElementById('userlist').innerHTML = userListString;
@@ -211,7 +229,7 @@ socket.on('showBoard',function(data){
 socket.on('tiles', function(tiles){
 	myTiles = tiles;
 	resizeDrawings();
-	console.log('tiles updated: ', myTiles);
+	//console.log('tiles updated: ', myTiles);
 });
 
 socket.on('boardState', function(recievedBoardState){
@@ -286,13 +304,17 @@ function draw(){
 		drawBoard(ctx, canvas.width/2, canvas.height/2, boardState.length, boardState[0].length, tileHeight+2*tilePadding, tileWidth+2*tilePadding);
 	}
 	
-	if(selected != undefined){
-		selected.drawSelected(ctx);
-	}
 
 	//player tiles
 	for(var i = 0; i < myTiles.length; i++){
-		shapes.push( new Tile(myTiles[i], (canvas.width/2) + (tileWidth + 20) * (i-2) , canvas.height - (tileHeight + 20), tileHeight, tileWidth, tileFontSize));
+		var tile = new Tile(myTiles[i], (canvas.width/2) + (tileWidth + 20) * (i-2) , canvas.height - (tileHeight + 20), tileHeight, tileWidth, tileFontSize);
+		tile.drawOutline(ctx, '#444444'); //placeholder outline
+		shapes.push( tile );
+	}
+	
+	//selected outline
+	if(selected != undefined){
+		selected.drawOutline(ctx, '#0000ff');
 	}
 	
 	//button
@@ -301,47 +323,6 @@ function draw(){
 		shapes.push(submitButton);
 	}
 	
-	//ctx.fill();
-	
-	/*
-	//draw selected
-	var startPlayer = 0;
-	for( i = 0; i < userList.length; i += 1 ){
-		if(userList[i].id === socket.id){
-			startPlayer = i;
-		}
-	}
-	
-	selected = drawSelected(radius);
-	var i;
-	var fontSize = Math.min(canvas.height, canvas.width)/30;
-	var offset;
-	var lowerAlignment = radius*Math.cos(angle/2)+fontSize/2;
-	for( i = 0; i < selected.length; i += 1){
-		player = (startPlayer + i)% selected.length;
-		//console.log('startplayer', player);
-		ctx.save();
-		ctx.rotate(i*angle);
-		selected[player] = drawCard(ctx, selected[player]);
-		ctx.fillStyle = userList[player].color;
-		ctx.font = fontSize + "px Arial Black, Gadget, Arial, sans-serif";
-		offset = selected[player].width/2 + fontSize
-		//lowerAlignment = selected[player].y + selected[player].height/2 + fontSize;
-		ctx.fillText(userList[player].userName, 0, radius);
-		if(showBid === true){
-				ctx.fillText(userList[player].handsWon, offset, lowerAlignment);
-				ctx.fillText('▬', offset, lowerAlignment + fontSize/2);
-				ctx.fillText(userList[player].bid, offset, lowerAlignment + 1.2*fontSize);
-		} else {
-			ctx.fillText('0', offset, lowerAlignment);
-			ctx.fillText('▬', offset, lowerAlignment + fontSize/2);
-			ctx.fillText('█', offset, lowerAlignment + 1.2*fontSize);
-		}
-		ctx.fillText('score', -offset - fontSize, lowerAlignment);
-		ctx.fillText(userList[player].score, -offset - fontSize, lowerAlignment + fontSize);
-		ctx.restore();
-	}
-	*/
 	//draw cards
 	for( i = 0; i < shapes.length; i += 1){
 		shapes[i].draw(ctx);
@@ -349,45 +330,6 @@ function draw(){
 	setTimeout(draw, 100); //repeat
 }
 draw();
-
-// function drawMyCards(){
-	// var myCardShapes = [];
-	// if (myTiles.length > 0){
-		// var i;
-		// var shape = {};
-		// var half = Math.floor(myTiles.length/2);
-		// var spacing = canvas.width/10;
-		// var width = Math.min(canvas.height/10, canvas.width/15);
-		// var height = width*1.3;
-		// var text;
-		// var fSize;
-		// var textSlant;
-		// for (i = 0; i <  myTiles.length; i += 1) {
-			// if( myTiles[i].type === 'number' ){
-				// text = '' + myTiles[i].number;
-				// fontSize = width/2;
-				// textSlant = false;
-			// } else {
-				// text = '' + myTiles[i].type;
-				// fontSize = Math.sqrt(width*width+height*height)/text.length;
-				// textSlant = true;
-			// }
-			// myTiles[i].card = {
-				// x: (canvas.width/2) + (i - half + .5)*spacing,
-				// y: canvas.height - (height/2) - Math.min(20, (spacing-width)/2),
-				// width: width,
-				// height: height,
-				// color: myTiles[i].color,
-				// outline: '#000000',
-				// text: text,
-				// fontSize: fontSize,
-				// textSlant: textSlant
-			// }	
-			// myCardShapes.push(myTiles[i].card);
-		// }
-	// }
-	// return myCardShapes;
-// }
 
 function drawBoard(ctx, xPos, yPos, rows, columns, rowThickness, columnThickness){
 	
@@ -423,7 +365,11 @@ function drawBoard(ctx, xPos, yPos, rows, columns, rowThickness, columnThickness
 		for (var i = 0; i < rows; i++) {
 			var x = xMin;
 			for(var j = 0; j < columns; j++){
-				shapes.push( new Tile( boardState[i][j], x+columnThickness/2, y+rowThickness/2, tileWidth, tileHeight, tileFontSize));
+				var tile = new Tile( boardState[i][j], x+columnThickness/2, y+rowThickness/2, tileWidth, tileHeight, tileFontSize);
+				if(i == Math.floor((rows-1)/2) && j == Math.floor((columns-1)/2)){
+					tile.drawOutline(ctx,'#B0C4DE');//center placeholder
+				}
+				shapes.push(tile);
 				x += columnThickness;
 			}
 			y += rowThickness;
@@ -431,41 +377,6 @@ function drawBoard(ctx, xPos, yPos, rows, columns, rowThickness, columnThickness
 		ctx.restore();
 	}
 }
-
-
-
-// function drawSelected(radius){
-	// var shapes1 = [];
-	// var i;
-	// var width = Math.min(canvas.height, canvas.width)/10;
-	// var height = (Math.min(canvas.height, canvas.width)/10)*1.3;
-	// for( i = 0; i < userList.length; i += 1){
-		// card = userList[i].cardSelected;
-		// //console.log(card);
-		// if( card.type === 'number' ){
-			// text = '' + card.number;
-			// fontSize = width/2;
-			// textSlant = false;
-		// } else {
-			// text = '' + card.type;
-			// fontSize = Math.sqrt(width*width+height*height)/text.length;
-			// textSlant = true;
-		// }
-		// shape = {
-			// x: 0,
-			// y: radius/2,
-			// width: width,
-			// height: height,
-			// color: card.color,
-			// outline: '#000000',
-			// text: text,
-			// fontSize: (Math.min(canvas.height, canvas.width)/10)/2,
-			// textSlant: textSlant
-		// }
-		// shapes1.push(shape);
-	// }
-	// return shapes1;
-// }
 
 function resizeCanvas(){
 	canvas.width = window.innerWidth - $('#sidebar').width() - 50;

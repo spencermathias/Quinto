@@ -134,9 +134,9 @@ io.sockets.on("connection", function(socket) {
         /*Sending the Acknowledgement back to the client , this will trigger "message" event on the clients side*/
     });
 
-    socket.on("newUser", function(userName) {
+    socket.on("userName", function(userName) {
         socket.userData.userName = userName;
-        socket.userData.ready = false;
+        //socket.userData.ready = false;
         console.log(__line,"added new user: " + socket.userData.userName);
 		message(io.sockets, "" + socket.userData.userName + " has joined!", serverColor);
         updateUsers();

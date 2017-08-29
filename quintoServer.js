@@ -1,5 +1,6 @@
 //TODO: be able to turn in tiles and get new ones
 //TODO: send current board state to new connections
+//subtract remaining tiles
 
 var express = require("express");
 var http = require("http");
@@ -346,9 +347,11 @@ function dealTiles(player, amountToBeDelt) {
 	var tileToGive;
 	var i;
 	for( i = 0; i < amountToBeDelt; i+=1) {
-		tileToGive = chooseRandomTile();
-		tileToGive.owner = player.id;
-		player.userData.tiles.push(tileToGive);
+		if(tiles.length > 0){
+			tileToGive = chooseRandomTile();
+			tileToGive.owner = player.id;
+			player.userData.tiles.push(tileToGive);
+		}
 	}
 	player.emit("tiles", player.userData.tiles);
 	message(io.sockets, tiles.length + " tiles left", gameColor);
@@ -387,20 +390,24 @@ function checkNeighbors(oldboard,row,col){
 	if(row == centerRow && col == centerCol){isConnected = true;}
 	//check upper
 	upperRow = row - 1;
-	if(upperRow < 0){upperRow = row;}
-	if(oldboard[upperRow][col].owner != blankTile.owner) {isConnected = true;}
+	if(upperRow < 0){upperRow = row;} else {
+		if(oldboard[upperRow][col].owner != blankTile.owner) {isConnected = true;}
+	}
 	//check left
 	leftCol = col - 1;
-	if(leftCol < 0){leftCol = col;}
-	if(oldboard[row][leftCol].owner != blankTile.owner) {isConnected = true;}
+	if(leftCol < 0){leftCol = col;} else {
+		if(oldboard[row][leftCol].owner != blankTile.owner) {isConnected = true;}
+	}
 	//check lower
 	lowerRow = row + 1;
-	if(lowerRow > boardRows-1){lowerRow = row;}
-	if(oldboard[lowerRow][col].owner != blankTile.owner) {isConnected = true;}
+	if(lowerRow > boardRows-1){lowerRow = row;} else {
+		if(oldboard[lowerRow][col].owner != blankTile.owner) {isConnected = true;}
+	}
 	//check right
 	rightCol = col + 1;
-	if(rightCol > boardColumns-1){rightCol = col;}
-	if(oldboard[row][rightCol].owner != blankTile.owner) {isConnected = true;}
+	if(rightCol > boardColumns-1){rightCol = col;} else {
+		if(oldboard[row][rightCol].owner != blankTile.owner) {isConnected = true;}
+	}
 	//console.log(__line, "is connected", isConnected);
 	return isConnected;
 }
@@ -635,6 +642,7 @@ function ensureSubmittedIsPhysicallyPossible(player, submittedBoardState){
 				} else {
 					correctedRow.push(blankTile);
 					console.log(__line, "submitted non existant tile");
+					message(player, "Submitted non existant tile!", gameErrorColor);
 					corrected.error = true;
 				}
 				
@@ -645,10 +653,12 @@ function ensureSubmittedIsPhysicallyPossible(player, submittedBoardState){
 							corrected.changedTiles.push(correctedRow[col]);
 							playedTilesCoord.push({row: row, col: col});
 						} else { //all played tiles are from players hand
+							message(player, "Played tiles not in hand!", gameErrorColor);
 							console.log(__line,"played tile not in hand!");
 							corrected.error = true;
 						}
 					} else { //only empty tiles replaced with played tiles
+						message(player, "Cannot replace old tile!", gameErrorColor);
 						console.log(__line,"cannot replace already played tile!");
 						corrected.error = true;
 					}

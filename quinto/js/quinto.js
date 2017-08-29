@@ -1,6 +1,13 @@
 //TODO: conflicted cells - if a new board state comes in, but the user has placed tiles on the board, highlight cells that are in a conflicted state and allow user to move their tile off
 // refresh tiles button to put all user tiles back in hand
 // button to get new tiles
+// highlight center square
+// highlight hand places
+// change background base on if tiles are valid
+// show new points as a +points in the user list
+// print new points to the chat log or make a grid showing all turn scores and total
+// hide submit button if not your turn
+// put chat log behind a button for mobile; only show the last message for a second
 var tileWidth = 40;
 var tileHeight = 40;
 var tilePadding = 5;
@@ -154,7 +161,9 @@ var boardState = [];
 var shapes = [];
 var userList = [];
 var spectatorColor = "#444444";
+var yourTurnColor = "#0000ff";
 var InputList;
+var myTurn = false;
 
 socket.on("message",function(message){  
 	/*
@@ -179,9 +188,13 @@ socket.on('userList',function(data){
 		if(data[i].color != spectatorColor){
 			userListString = userListString + '<div style="color: ' + data[i].color + ';">' + data[i].userName + " " + data[i].score + '</div>';
 			userList.push(data[i]);
+			if(data[i].id == socket.id){
+				myTurn = (data[i].color == yourTurnColor);
+			}
 		} else {
 			userListString = userListString + '<div style="color: ' + data[i].color + ';">' + data[i].userName + '</div>';
 		}
+		console.log( "player", data[i].userName, "myTurn", myTurn, "id", data[i].id, socket.id, "color", data[i].color, yourTurnColor);
 		InputList = data;
 	}
 	document.getElementById('userlist').innerHTML = userListString;
@@ -283,9 +296,10 @@ function draw(){
 	}
 	
 	//button
-	var submitButton = new SubmitButton(canvas.width/2, 60, tileWidth*4, tileHeight, "SUBMIT", tileFontSize, function(){console.log("sending to server"); socket.emit("newBoardState", boardState)})
-	shapes.push(submitButton);
-	
+	if(myTurn){
+		var submitButton = new SubmitButton(canvas.width/2, 60, tileWidth*4, tileHeight, "SUBMIT", tileFontSize, function(){console.log("sending to server"); socket.emit("newBoardState", boardState)})
+		shapes.push(submitButton);
+	}
 	
 	//ctx.fill();
 	

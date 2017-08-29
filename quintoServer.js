@@ -8,7 +8,7 @@ var io = require("socket.io");
 //const spawn = require("child_process").spawn;
 
 var app = express();
-app.use(express.static("./quinto")); //working directory
+app.use(express.static("./htmlQuinto")); //working directory
 //Specifying the public folder of the server to make the html accesible using the static middleware
 
 var socket = 8080;

@@ -5,6 +5,8 @@
 var express = require("express");
 var http = require("http");
 var io = require("socket.io");
+var shared = require('./htmlQuinto/js/shared.js'); //get shared functions
+
 //const spawn = require("child_process").spawn;
 
 var app = express();
@@ -29,8 +31,6 @@ var boardRows = 13;
 var boardColumns = 17;
 var boardState = [];
 
-var numberOfTilesForHand = 5;
-
 var tileDesc = {
     zeros: 7,
 	ones: 6,
@@ -43,7 +43,7 @@ var tileDesc = {
 	eights: 12,
 	nines: 12
 };
-var blankTile = {owner: "board", number: -1, id: -1};
+
 var tiles = [];
 var allTiles = [];
 
@@ -162,7 +162,30 @@ io.sockets.on("connection", function(socket) {
 	socket.on("newBoardState", function(newBoardState){
 		if (gameStatus === gameMode.PLAY){
 			if( players[currentTurn%players.length].id === socket.id ){
-				validTilesToPlay(socket, newBoardState);
+				check = shared.validTilesToPlay(socket.userData.tiles, newBoardState, boardState, allTiles);
+				if(check.error.length == 0){
+					if(check.skipped){
+						socket.userData.skippedTurn = true;
+					} else {
+						socket.userData.skippedTurn = false;
+					}
+					socket.userData.score += check.score;
+					//console.log(__line, "before remove", socket.userData.tiles);
+					for(var i = 0; i < check.changedTiles.length; i++){ //place tiles onto board
+						socket.userData.tiles.splice(socket.userData.tiles.indexOf(check.changedTiles[i]), 1);
+					}
+					//console.log(__line, "after remove", socket.userData.tiles);
+					dealTiles(socket, shared.numberOfTilesForHand - socket.userData.tiles.length);
+					//console.log(__line, "after pick", socket.userData.tiles);
+					boardState = check.boardState;
+					sendBoardState();
+					nextTurn();
+					updateTurnColor();
+				} else {
+					message(socket, check.error, gameErrorColor);
+					console.log(__line, "invalid play:", check.error);
+					//message(socket, "Invalid play!", gameErrorColor);
+				}
 			} else {
 				message(socket, "It is not your turn!", gameErrorColor);
 			}
@@ -271,11 +294,12 @@ function gameStart() {
 	for(var i =0; i < tiles.length; i++){
 		allTiles.push(tiles[i]); //deck to reference cards
 	}
+	io.sockets.emit("allTiles", allTiles);
 	//console.log(__line, "alltiles", allTiles);
 	
 	players.forEach(function(player) {
 		//player.userData.tiles = [];
-		dealTiles(player, numberOfTilesForHand);
+		dealTiles(player, shared.numberOfTilesForHand);
 		//console.log(__line, "player", player.userData.name,player.userData.tiles);
 	});
 	
@@ -294,7 +318,7 @@ function setUpBoard(){ //set all positions on the board to -1 to indicate no til
 	for (row = 0; row < boardRows; row++){
 		boardRow = [];
 		for (column = 0; column < boardColumns; column++){
-			boardRow.push(blankTile);
+			boardRow.push(shared.blankTile);
 		}
 		boardState.push(boardRow);
 	}
@@ -379,334 +403,6 @@ function returnTileToDeck(player, tile, tileDeck) {
 		return false;
 	}
 }*/
-
-function checkNeighbors(oldboard,row,col){
-	var isConnected = false
-	//check center
-	var centerRow = (boardRows-1)/2;
-	var centerCol = (boardColumns-1)/2;
-	//console.log(__line, "row", row, "centerRow" , centerRow);
-	//console.log(__line, "col", col, "centerCol" , centerCol);
-	if(row == centerRow && col == centerCol){isConnected = true;}
-	//check upper
-	upperRow = row - 1;
-	if(upperRow < 0){upperRow = row;} else {
-		if(oldboard[upperRow][col].owner != blankTile.owner) {isConnected = true;}
-	}
-	//check left
-	leftCol = col - 1;
-	if(leftCol < 0){leftCol = col;} else {
-		if(oldboard[row][leftCol].owner != blankTile.owner) {isConnected = true;}
-	}
-	//check lower
-	lowerRow = row + 1;
-	if(lowerRow > boardRows-1){lowerRow = row;} else {
-		if(oldboard[lowerRow][col].owner != blankTile.owner) {isConnected = true;}
-	}
-	//check right
-	rightCol = col + 1;
-	if(rightCol > boardColumns-1){rightCol = col;} else {
-		if(oldboard[row][rightCol].owner != blankTile.owner) {isConnected = true;}
-	}
-	//console.log(__line, "is connected", isConnected);
-	return isConnected;
-}
-
-function validTilesToPlay(player, submittedBoardState) {
-	//at least one section must contain an old tile or the origin
-	//played tiles must be in a single row or column
-	//cannot have empty gap between played tiles
-	//sections that contain a played tile must add to a multiple of 5
-	var score = 0;
-	var corrected = ensureSubmittedIsPhysicallyPossible(player, submittedBoardState);
-	var skipped = corrected.changedTiles.length == 0;
-	if(!corrected.error){
-		//split board up into sections that contain newly played tiles
-		//var allConnect = true;
-		var rowSections = [];
-		for(var row = 0; row < corrected.boardState.length; row++){
-			var sections = [];
-			var containsNew = false;
-			//var subConnect = false;
-			var subsection = [];
-			for(var col = 0; col < corrected.boardState[row].length; col++){
-				if(corrected.boardState[row][col].id != blankTile.id){
-					subsection.push({pos: {row: row, col:col}, tile: corrected.boardState[row][col]});
-					if(corrected.changedTiles.indexOf(corrected.boardState[row][col]) >= 0){
-						containsNew = true;
-					}
-					// if(checkNeighbors(boardState, row, col)){
-						// subConnect = true;
-					// }
-				} else {
-					if(subsection.length > 0 && containsNew){
-						//if(!subConnect){allConnect = false;}
-						sections.push(subsection);
-					}
-					subsection = [];
-					containsNew = false
-					subConnect = false;
-				}
-			}
-			if(subsection.length > 0 && containsNew){ //takes care of edge case
-				//if(!subConnect){allConnect = false;}
-				sections.push(subsection);
-			} 
-			rowSections.push(sections);
-		}
-		
-		var colSections = [];
-		for(var col = 0; col < corrected.boardState[0].length; col++){
-			var sections = [];
-			var containsNew = false;
-			var subConnect = false;
-			//var subsection = [];
-			for(var row = 0; row < corrected.boardState.length; row++){
-				if(corrected.boardState[row][col].id != blankTile.id){
-					subsection.push({pos: {row: row, col:col}, tile: corrected.boardState[row][col]});
-					if(corrected.changedTiles.indexOf(corrected.boardState[row][col]) >= 0){
-						containsNew = true;
-					}
-					// if(checkNeighbors(boardState, row, col)){
-						// subConnect = true;
-					// }
-				} else {
-					if(subsection.length > 0 && containsNew){
-						//if(!subConnect){allConnect = false;}
-						sections.push(subsection);
-					}
-					subsection = [];
-					containsNew = false
-					subConnect = false;
-				}
-			}
-			if(subsection.length > 0 && containsNew){ //takes care of edge case
-				//if(!subConnect){allConnect = false;}
-				sections.push(subsection);
-			} 
-			colSections.push(sections);
-		}
-		//console.log(__line,"rowSections",rowSections);
-		//console.log(__line,"colSections",colSections);
-		/*
-		for(var i = 0; i < rowSections.length; i++){
-			console.log(__line, "row " + i + ":")
-			for(var j = 0; j < rowSections[i].length; j++){
-				console.log(__line, rowSections[i][j]);
-			}
-		}
-		for(var i = 0; i < colSections.length; i++){
-			console.log(__line, "col " + i + ":")
-			for(var j = 0; j < colSections[i].length; j++){
-				console.log(__line, colSections[i][j]);
-			}
-		}*/
-		
-		var space = false;
-		var multipleOfFive = true;
-		var oneRunIsLongerThanOne = false;
-		var runsShoterThanSix = true;
-		var allRunsLongerThanOneConnectToOldBoard = true;
-		var subscore;
-		for(var row = 0; row < rowSections.length; row++){
-			if(rowSections[row].length > 1){space = true;}
-			subscore = 0;
-			if(rowSections[row].length > 0){
-				if(rowSections[row][0].length > 1){
-					oneRunIsLongerThanOne = true;
-					if(rowSections[row][0].length > numberOfTilesForHand){
-						runsShoterThanSix = false;
-					}
-					var groupConnects = false;
-					for(var i = 0; i < rowSections[row][0].length; i++){
-						subscore += rowSections[row][0][i].tile.number;
-						if(checkNeighbors(boardState, rowSections[row][0][i].pos.row, rowSections[row][0][i].pos.col)){
-							groupConnects = true;
-						}
-					}
-					if (!groupConnects){
-						allRunsLongerThanOneConnectToOldBoard = false;
-					}
-				}
-			}
-			if(subscore % numberOfTilesForHand == 0){
-				score += subscore;
-			} else {
-				multipleOfFive = false;
-			}
-		}
-		
-		for(var col = 0; col < colSections.length; col++){
-			if(colSections[col].length > 1){space = true;}
-			subscore = 0;
-			if(colSections[col].length > 0){
-				if(colSections[col][0].length > 1){
-					oneRunIsLongerThanOne = true;
-					if(colSections[col][0].length > numberOfTilesForHand){
-						runsShoterThanSix = false;
-					}
-					var groupConnects = false;
-					for(var i = 0; i < colSections[col][0].length; i++){
-						subscore += colSections[col][0][i].tile.number;
-						if(checkNeighbors(boardState, colSections[col][0][i].pos.row, colSections[col][0][i].pos.col)){
-							groupConnects = true;
-						}
-					}
-					if (!groupConnects){
-						allRunsLongerThanOneConnectToOldBoard = false;
-					}
-				}
-			}
-			if(subscore % numberOfTilesForHand == 0){
-				score += subscore;
-			} else {
-				multipleOfFive = false;
-			}
-		}
-		if(space){
-			score = -1;
-			message(player, "Spaces are not allowed between played tiles!", gameErrorColor);
-			console.log(__line, "Spaces are not allowed between played tiles!");
-		}
-		
-		if(!runsShoterThanSix){
-			score = -1;
-			message(player, "Run lengths must be shorter than " + numberOfTilesForHand, gameErrorColor);
-			console.log(__line, "Run lengths must be shorter than " + numberOfTilesForHand);
-		}
-		
-		if(!multipleOfFive){
-			score = -1;
-			message(player, "A run was not a multiple of " + numberOfTilesForHand, gameErrorColor);
-			console.log(__line, "A run was not a multiple of " + numberOfTilesForHand);
-		}
-		
-		if(!oneRunIsLongerThanOne && !skipped){
-			score = -1;
-			message(player, "At least one run must be longer than one tile!", gameErrorColor);
-			console.log(__line, "At least one run must be longer than one tile!");
-		}
-		
-		if(!allRunsLongerThanOneConnectToOldBoard){
-			score = -1;
-			message(player, "Tiles must connect to previous tiles!", gameErrorColor);
-			console.log(__line, "Tiles must connect to previous tiles!");
-		}
-		
-	} else {
-		console.log(__line, "submitted is not possible!");
-		score = -1;
-	}
-	//end turn stuff
-	if(score >= 0){
-		if(skipped){
-			player.userData.skippedTurn = true;
-		} else {
-			player.userData.skippedTurn = false;
-		}
-		player.userData.score += score;
-		//console.log(__line, "before remove", player.userData.tiles);
-		for(var i = 0; i < corrected.changedTiles.length; i++){ //place tiles onto board
-			player.userData.tiles.splice(player.userData.tiles.indexOf(corrected.changedTiles[i]), 1);
-		}
-		//console.log(__line, "after remove", player.userData.tiles);
-		dealTiles(player, numberOfTilesForHand - player.userData.tiles.length);
-		//console.log(__line, "after pick", player.userData.tiles);
-		boardState = corrected.boardState;
-		sendBoardState();
-		nextTurn();
-		updateTurnColor();
-	} else {
-		console.log("invalid play");
-		//message(player, "Invalid play!", gameErrorColor);
-	}
-}
-
-function ensureSubmittedIsPhysicallyPossible(player, submittedBoardState){
-//submitted board is the same as the actual board /
-//ensure all submitted tiles are actual tiles /
-//only empty tiles replaced with played tiles /
-//all played tiles are from players hand /
-////all played tiles are in a line /
-	var playedTilesCoord = [];
-	var corrected = {error: false, boardState: [], changedTiles: []};
-	if(boardIsCorrectSize(submittedBoardState)){ //submitted board is the same as the actual board
-		for(var row = 0; row < boardState.length; row++){
-			var correctedRow = [];
-			for(var col = 0; col < boardState[row].length; col++){
-				//ensure all submitted tiles are actual tiles
-				if(submittedBoardState[row][col].id == blankTile.id){ //make a submitted board using server side tiles
-					correctedRow.push(blankTile);
-				} else if(submittedBoardState[row][col].id < allTiles.length){
-					correctedRow.push(allTiles[submittedBoardState[row][col].id]);
-				} else {
-					correctedRow.push(blankTile);
-					console.log(__line, "submitted non existant tile");
-					message(player, "Submitted non existant tile!", gameErrorColor);
-					corrected.error = true;
-				}
-				
-				if(correctedRow[col].id != boardState[row][col].id ){ //if a tile has changed
-					if(boardState[row][col].id == blankTile.id){ //if tile is empty on board state
-						var tileIndex = player.userData.tiles.indexOf(correctedRow[col]);
-						if(tileIndex >= 0){
-							corrected.changedTiles.push(correctedRow[col]);
-							playedTilesCoord.push({row: row, col: col});
-						} else { //all played tiles are from players hand
-							message(player, "Played tiles not in hand!", gameErrorColor);
-							console.log(__line,"played tile not in hand!");
-							corrected.error = true;
-						}
-					} else { //only empty tiles replaced with played tiles
-						message(player, "Cannot replace old tile!", gameErrorColor);
-						console.log(__line,"cannot replace already played tile!");
-						corrected.error = true;
-					}
-				}
-			}
-			corrected.boardState.push(correctedRow);
-		}
-	} else {
-		message(player, "Submitted board does not have the correct size!", gameErrorColor);
-		console.log(__line, "Submitted board does not have the correct size!");
-		corrected.error = true; 
-	}
-	//all played tiles are in a line
-	var useRow = true;
-	var useCol = true;
-	if(playedTilesCoord.length > 0){
-		iRow = playedTilesCoord[0].row;
-		iCol = playedTilesCoord[0].col;
-		for(var i = 1; i < playedTilesCoord.length; i++){
-			if(playedTilesCoord[i].row != iRow){ useRow = false;}
-			if(playedTilesCoord[i].col != iCol){ useCol = false;}
-		}
-	}
-	if(!useRow && !useCol){
-		message(player, "New tiles must be in a single row or column!", gameErrorColor);
-		console.log(__line, "New tiles must be in a single row or column!");
-		corrected.error = true;
-	}
-	//console.log(corrected.boardState);
-	return corrected;
-}
-
-function boardIsCorrectSize(submittedBoardState){
-	correctSize = true;
-	//make sure row lengths match
-	if(submittedBoardState.length != boardState.length){
-		console.log(__line,"Invalid number of rows!"); 
-		correctSize = false;
-	} 
-	for(var row = 0; row < boardState.length; row++){
-		//make sure column lengths match
-		if(submittedBoardState[row].length != boardState[row].length){
-			console.log(__line,"Invalid number of columns!"); 
-			correctSize = false;
-		}
-	}
-	return correctSize;
-}
 
 function playersHaveTiles(){ //to check end conditions
 	var i;

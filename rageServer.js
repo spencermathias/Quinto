@@ -710,7 +710,11 @@ function tallyScoreFromHand(){
 		if( player.userData.handsWon.length != player.userData.bid){
 			score += missedBidPenalty;
 		} else {
-			score += gotBidBonus;
+			if(player.userData.bid == currentRound){
+				score += currentRound*gotBidBonus;
+			} else {
+				score += gotBidBonus;
+			}
 		}
 		player.userData.handScore = score;
 	});

@@ -1,3 +1,4 @@
+//subtract tiles at end
 //TODO: be able to turn in tiles and get new ones
 //TODO: send current board state to new connections
 //subtract remaining tiles
@@ -24,6 +25,7 @@ var maxPlayers = 20;
 
 var allClients = [];
 var players = [];
+var spectators = [];
 
 var currentTurn = 0;
 
@@ -93,8 +95,12 @@ io.sockets.on("connection", function(socket) {
     if (gameStatus === gameMode.LOBBY) {
         socket.userData.statusColor = notReadyColor;
     } else {
+		spectators.push(socket);
         socket.userData.statusColor = spectatorColor;
         updateBoard(socket, notReadyTitleColor, true);
+		updateUsers(socket);
+		socket.emit("allTiles", allTiles);
+		socket.emit('boardState', boardState);
     }
 
 	message(socket, "Connection established!", serverColor)
@@ -103,17 +109,32 @@ io.sockets.on("connection", function(socket) {
 
     socket.on("disconnect",function() {
 		message( io.sockets, "" + socket.userData.userName + " has left.", serverColor);
+		message( io.sockets, "Type 'kick' to kick disconnected players", serverColor);
         console.log(__line,"disconnected: " + socket.userData.userName + ": " + socket.id);
         var i = allClients.indexOf(socket);
-        allClients.splice(i, 1);
-        i = players.indexOf(socket);
-        if(i >= 0){players.splice(i, 1);}
-		if( players.length < minPlayers) {
-			gameEnd();
-		} else {
-			updateUsers();
-		}
+        if(i >= 0){ allClients.splice(i, 1); }
+		var i = spectators.indexOf(socket);
+        if(i >= 0){ spectators.splice(i, 1); }
+		updateUsers();
+        //players are only removed if kicked
     });
+	
+	socket.on('oldId', function(id){
+		console.log(__line, "oldID:", id);
+		for(var i = 0; i < players.length; i++){
+			if(players[i].id == id){
+				console.log(__line, "found old player!", players[i].userData.username, socket.userData.userName);
+				var j = spectators.indexOf(socket);
+				if(j >= 0){spectators.splice(j, 1)};
+				socket.userData = players[i].userData;
+				players[i] = socket;
+				socket.emit('tiles', socket.userData.tiles);
+				updateTurnColor();
+			} else {
+				console.log(__line, "new player");
+			}
+		}
+	});
 
     socket.on("message",function(data) {
         /*This event is triggered at the server side when client sends the data using socket.send() method */
@@ -130,7 +151,20 @@ io.sockets.on("connection", function(socket) {
         } else if(data.message === "start") {
             console.log(__line,"forced start");
             gameStart();
-        }
+        } else if(data.message.toLowerCase() === "kick"){
+			console.log(__line, "clearing players");
+			for(var i = players.length-1; i >= 0; i--){
+				if(players[i].disconnected){
+					message( io.sockets, "" + players[i].userData.userName + " has been kicked!", chatColor);
+					players.splice(i, 1);
+				}
+			}
+			if( players.length < minPlayers) {
+				gameEnd();
+			} else {
+				updateTurnColor();
+			}
+		}
         /*Sending the Acknowledgement back to the client , this will trigger "message" event on the clients side*/
     });
 
@@ -149,7 +183,6 @@ io.sockets.on("connection", function(socket) {
 				socket.userData.statusColor = readyColor;
 				updateBoard(socket, readyTitleColor , false);
 			} else {
-				var i = players.indexOf(socket);
 				socket.userData.statusColor = notReadyColor;
 				updateBoard(socket, notReadyTitleColor , false);
 			}
@@ -215,20 +248,34 @@ function message(socket, message, color){
 	socket.emit('message',JSON.stringify(messageObj));
 }
 
-function updateUsers() {
-    console.log(__line,"--------------Sending New User List--------------");
+function updateUsers(target = io.sockets){
+	console.log(__line,"--------------Sending New User List--------------");
     var userList = [];
-    allClients.forEach(function(client){
-        console.log(__line,"userName:", client.userData.userName, " |ready:", client.userData.ready, "|status:", client.userData.statusColor, "|score:", client.userData.score);
-		userList.push({
-            id: client.id,
-            userName: client.userData.userName,
-            color: client.userData.statusColor,
-			score: client.userData.score
-        });
-    });
-    io.sockets.emit("userList", userList);
+	if(gameStatus == gameMode.LOBBY){
+		allClients.forEach(function(client){
+			userList.push(getUserSendData(client));
+		});
+	} else {
+		players.forEach(function(client){
+			userList.push(getUserSendData(client));
+		});
+		spectators.forEach(function(client){
+			userList.push(getUserSendData(client));
+		});
+	}
     console.log(__line,"----------------Done Sending List----------------");
+	
+	io.sockets.emit('userList', userList);
+}
+
+function getUserSendData(client){
+	console.log(__line,"userName:", client.userData.userName, " |ready:", client.userData.ready, "|status:", client.userData.statusColor, "|score:", client.userData.score);
+	return{
+		id: client.id,
+		userName: client.userData.userName,
+		color: client.userData.statusColor,
+		score: client.userData.score
+	};
 }
 
 function updateBoard(socketSend, titleColor, showBoard) { //switches between title and game screen
@@ -240,27 +287,15 @@ function updateBoard(socketSend, titleColor, showBoard) { //switches between tit
     socketSend.emit("showBoard", showBoardMessage);
 }
 
-function checkStart() {
-	var i;
-	players = [];
-    for (i = 0; i < allClients.length; i += 1) {
-		if (allClients[i].userData.ready){
-			players.push(allClients[i]);
-		}
-    }
-	for (i = 0; i < players.length; i += 1){
-        console.log(__line, "  player"+ i +": " + players[i].userData.userName);
-	}
-    console.log(__line, "playerCount: " + players.length);
-    console.log(__line,"gameStatus: " + gameStatus);
-    if( players.length >= minPlayers && gameStatus === gameMode.LOBBY) {
-        var startGame = true;
+function checkStart() {	
+    if( gameStatus === gameMode.LOBBY) {
+        var readyCount = 0;
         allClients.forEach(function(client) {
-            if( client.userData.ready === false) {
-                startGame = false;
+            if( client.userData.ready ) {
+                readyCount++;
             }
         });
-        if(startGame) {
+        if(readyCount == allClients.length && readyCount >= minPlayers) {
             gameStart();
         }
     }
@@ -270,17 +305,21 @@ function gameStart() {
 	console.log(__line,"gameStart");
 	message(io.sockets, "THE GAME HAS STARTED", gameColor);
 	gameStatus = gameMode.PLAY;
-	//reset colors
-	allClients.forEach(function(client) {
-		if ( client.userData.ready === true ) {
+	//reset players
+	players = [];
+	spectators = [];
+	allClients.forEach(function(client){ 
+		if(client.userData.ready){
 			client.userData.statusColor = notYourTurnColor;
 			client.userData.tiles = [];
 			client.userData.score = 0;
 			client.userData.skippedTurn = false;
+			players.push(client);
 		} else {
 			client.userData.statusColor = spectatorColor;
 		}
 	});
+	
 	setUpBoard();
 	updateBoard(io.sockets, readyTitleColor, true);
 	currentTurn = Math.floor(Math.random()*players.length); //random starting person
@@ -435,18 +474,20 @@ function gameEnd() {
 
 	message( io.sockets, "THE GAME HAS ENDED", gameColor);
 	message(io.sockets, "Scores: ", gameColor);
-	var i = 0;
-	for( i = 0; i < players.length; i += 1){
+	for( var i = 0; i < players.length; i += 1){
+		for(var tile = 0; tile < players[i].userData.tiles.length; tile++){
+			players[i].userData.score -= players[i].userData.tiles[tile].number;
+		}
 		message(io.sockets, players[i].userData.userName + ": " + players[i].userData.score + "\n", gameColor);
+		//console.log(players[i].userData.userName, players[i].userData.score);
 	}
 	
     players = [];
-    console.log(__line,"before: ", players.length);
+	spectators = [];
     allClients.forEach(function(client) {
         client.userData.ready = false;
         client.userData.statusColor = notReadyColor;
     });
-    console.log(__line,"after: ", players.length);
     gameStatus = gameMode.LOBBY;
     updateUsers();
 }

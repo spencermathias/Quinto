@@ -90,7 +90,7 @@ function validTilesToPlay(playerTiles, submittedBoardState, currentBoardState, a
 			var sections = [];
 			var containsNew = false;
 			var subConnect = false;
-			//var subsection = [];
+			var subsection = [];
 			for(var row = 0; row < corrected.boardState.length; row++){
 				if(corrected.boardState[row][col].id != blankTile.id){
 					subsection.push({pos: {row: row, col:col}, tile: corrected.boardState[row][col]});
@@ -113,21 +113,22 @@ function validTilesToPlay(playerTiles, submittedBoardState, currentBoardState, a
 			} 
 			colSections.push(sections);
 		}
-		//console.log(__line,"rowSections",rowSections);
-		//console.log(__line,"colSections",colSections);
-		/*
-		for(var i = 0; i < rowSections.length; i++){
-			console.log(__line, "row " + i + ":")
+		//console.log("rowSections",rowSections);
+		//console.log("colSections",colSections);
+		
+		/*for(var i = 0; i < rowSections.length; i++){
+			console.log( "row " + i + ":")
 			for(var j = 0; j < rowSections[i].length; j++){
-				console.log(__line, rowSections[i][j]);
+				console.log( rowSections[i][j]);
 			}
 		}
 		for(var i = 0; i < colSections.length; i++){
-			console.log(__line, "col " + i + ":")
+			console.log( "col " + i + ":")
 			for(var j = 0; j < colSections[i].length; j++){
-				console.log(__line, colSections[i][j]);
+				console.log( colSections[i][j]);
 			}
 		}*/
+		
 		
 		var space = false;
 		var multipleOfFive = true;
@@ -222,7 +223,7 @@ function ensureSubmittedIsPhysicallyPossible(playerTiles, submittedBoardState, b
 //ensure all submitted tiles are actual tiles /
 //only empty tiles replaced with played tiles /
 //all played tiles are from players hand /
-////all played tiles are in a line /
+//all played tiles are in a line /
 	var playedTilesCoord = [];
 	var corrected = {error: "", boardState: [], changedTiles: []};
 	if(boardIsCorrectSize(submittedBoardState, boardState)){ //submitted board is the same as the actual board

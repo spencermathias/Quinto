@@ -102,7 +102,7 @@ class Tile extends Button{
 		if(tileData != undefined){
 			text = tileData.number
 		}
-		super(x,y,width,height,text,'#ffe0b3','#000000','#000000',undefined,fontSize,false);
+		super(x,y,width,height,text,defaultTileColor,'#000000','#000000',undefined,fontSize,false);
 		this.tileData = tileData;
 		this.visible = (text >= 0);
 		this.highlightColor = "";
@@ -155,11 +155,7 @@ class MoveTile extends Tile	{
 			selected = this;
 		}
 		
-		
-		var check = validTilesToPlay(serverTiles, getTileData(newState), getTileData(boardState), allTiles);
-		$('#userListDiv'+myUserlistIndex)[0].innerHTML = (myUserlistString + " + " + check.score);
-		scoreIsValid = check.error.length == 0;
-		console.log("check", check);
+		updatePlayValidity();
 		//console.log("I am tile of number: " + this.tileData.number + " and Id: " + this.tileData.id, this);
 	}
 }
@@ -225,6 +221,11 @@ class Board {
 		
 		for(var row = 0; row < recievedBoardState.length; row++){
 			for(var col = 0; col < recievedBoardState[0].length; col++){
+				if(boardState[row][col].tileData.id != recievedBoardState[row][col].id){
+					boardState[row][col].fillColor = newServerTileColor;
+				} else {
+					boardState[row][col].fillColor = defaultTileColor;
+				}
 				boardState[row][col].updateData(recievedBoardState[row][col]);
 			}
 		}
@@ -316,6 +317,11 @@ socket.on('connect', function(){
 	} else {
 		socket.emit('userName', localStorage.userName);
 	}
+	
+	if(localStorage.id !== undefined){
+		socket.emit('oldId', localStorage.id);
+	}
+	localStorage.id = socket.id;
 });
 
 socket.on('allTiles', function(inAllTiles){
@@ -347,7 +353,12 @@ var shapes = [[],[],[]];
 var userList = [];
 var spectatorColor = "#444444";
 var yourTurnColor = "#0000ff";
-var InputList;
+var newTileColor = "#ffff00";
+var placeholderColor = '#444444';
+var validPlayColor = '#00ff00';
+var invalidPlayColor = '#ff0000';
+var defaultTileColor = '#ffe0b3';
+var newServerTileColor = '#aae0b3';
 var myTurn = false;
 var myUserlistIndex = 0;
 var myUserlistString = "";
@@ -370,22 +381,26 @@ socket.on("message",function(message){
 
 socket.on('userList',function(data){
 	var userListString = '';
-	userList = [];
+	userList = data;
 	for( var i = 0; i < data.length; i++ ){
+		var header = 'div id="userListDiv'+ i + '"';
+		var click = 'onclick="changeName(' + "'" + data[i].id + "'" + ')"';
+		var color = ' style="color: ' + data[i].color + ';"'
+		var string = '' + data[i].userName;
+		var ender = '</div>';
+		
 		if(data[i].color != spectatorColor){
-			var string = "" + data[i].userName + " " + data[i].score;
-			userListString = userListString + '<div id="userListDiv'+ i +'" onclick="changeName(' + "'" + data[i].id + "'" + ')" style="color: ' + data[i].color + ';">' + string + '</div>';
-			userList.push(data[i]);
+			string = string + " " + data[i].score;
+			
 			if(data[i].id == socket.id){
 				myUserlistIndex = i;
 				myTurn = (data[i].color == yourTurnColor);
 				myUserlistString = string;
 			}
-		} else {
-			userListString = userListString + '<div id="userListDiv'+ i +'" style="color: ' + data[i].color + ';">' + data[i].userName + '</div>';
 		}
+		
+		userListString = userListString + '<' + header + click + color + '>' + string + ender;
 		//console.log( "player", data[i].userName, "myTurn", myTurn, "id", data[i].id, socket.id, "color", data[i].color, yourTurnColor);
-		InputList = data;
 	}
 	document.getElementById('userlist').innerHTML = userListString;
 	console.table(data);
@@ -408,13 +423,14 @@ socket.on('tiles', function(tiles){
 	myTiles = [];
 	for(var i = 0; i < tiles.length; i++){
 		var tile = new MoveTile(tiles[i], (canvas.width/2) + (tileWidth + 20) * (i-2) , canvas.height - (tileHeight + 20), tileHeight, tileWidth, tileFontSize);
-		tile.drawOutline('#444444'); //placeholder outline
-		shapes[0].push( tile );//1st layer
+		tile.fillColor = newTileColor;
+		tile.drawOutline(placeholderColor); //placeholder outline
+		shapes[0].push(tile);//1st layer
 		myTiles.push(tile);
 	}
 	
 	//resizeDrawings();
-	//console.log('tiles updated: ', myTiles);
+	console.log('tiles updated: ', myTiles);
 });
 
 socket.on('boardState', function(recievedBoardState){
@@ -427,13 +443,17 @@ socket.on('boardState', function(recievedBoardState){
 			for(var row = 0; row < boardState.length; row++){
 				var line = [];
 				for(var col = 0; col < boardState[0].length; col++){
-					line.push(new MoveTile(newBlankTile(), 0, 0, tileHeight, tileWidth, tileFontSize));
+					var tile = new MoveTile(newBlankTile(), 0, 0, tileHeight, tileWidth, tileFontSize);
+					tile.fillColor = newTileColor;
+					line.push(tile);
 					//line.push(newBlankTile());
 				}
 				newState.push(line);
 			}
 		}
 	}
+	
+	updatePlayValidity();
 });
 
 $('#submit').click(function(){
@@ -454,6 +474,17 @@ $('#title').click(function(){
 	}
 	return false;
 });
+
+function updatePlayValidity(){
+	var check = validTilesToPlay(serverTiles, getTileData(newState), getTileData(boardState), allTiles);
+	if(check.error.length == 0){
+		$('#userListDiv'+myUserlistIndex)[0].innerHTML = (myUserlistString + " + " + check.score);
+	} else {
+		$('#userListDiv'+myUserlistIndex)[0].innerHTML = (myUserlistString);
+	}
+	scoreIsValid = check.error.length == 0;
+	//console.log("check", check);
+}
 
 function checkClick(event){
 	var foundClick = false;
@@ -509,15 +540,15 @@ function draw(){
 	
 	//player tiles
 	for(var i = 0; i < myTiles.length; i++){
-		if(myTurn){
-			if(scoreIsValid){
-				myTiles[i].drawOutline('#00ff00');
-			} else {
-				myTiles[i].drawOutline('#ff0000');
-			}
+		//if(myTurn){
+		if(scoreIsValid){
+			myTiles[i].drawOutline(validPlayColor);
 		} else {
-			myTiles[i].drawOutline('#444444'); //placeholder outline
+			myTiles[i].drawOutline(invalidPlayColor);
 		}
+		//} else {
+		//	myTiles[i].drawOutline('#444444'); //placeholder outline
+		//}
 		shapes[0].push( myTiles[i] );//1st layer
 	}
 	
@@ -556,9 +587,12 @@ function resizeCanvas(){
 function resizeDrawings(){
 	tileWidth = 40 * window.devicePixelRatio;
 	tileHeight = 40 * window.devicePixelRatio;
+	tilePadding = tileWidth/20;
 	tileFontSize = 30 * window.devicePixelRatio;
 	board.x = canvas.width/2;
 	board.y = canvas.height/2;
+	board.rowThickness = tileHeight + 2*tilePadding;
+	board.columnThickness = tileWidth + 2*tilePadding;
 	
 	for(var i = 0; i < myTiles.length; i++){
 		myTiles[i].updateSize((canvas.width/2) + (tileWidth + 20) * (i-2) , canvas.height - (tileHeight + 20), tileHeight, tileWidth);

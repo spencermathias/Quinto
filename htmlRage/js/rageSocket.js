@@ -1,15 +1,15 @@
 //socket stuff
 
-var socket = io("67.177.33.109"); //try public address
+var socket = io("http://alanisboard.ddns.net/"); //try public address
 var trylocal = 0;
 socket.on('connect_error',function(error){
 	console.log("I got an error!", error);
 	console.log("socket to:", socket.disconnect().io.uri, "has been closed.");
 	if(!trylocal){ //prevent loops
-		if(window.location.href != 'http://192.168.0.21:8080/'){
-			window.location.replace('http://192.168.0.21:8080/');
+		if(window.location.href != 'http://192.168.1.21:8080/'){
+			window.location.replace('http://192.168.1.21:8080/');
 		}
-		socket.io.uri = "192.168.0.21:8080";
+		socket.io.uri = "192.168.1.21:8080";
 		console.log("Switching to local url:", socket.io.uri);
 		console.log("Connecting to:",socket.connect().io.uri);
 		trylocal = 1;
@@ -35,8 +35,7 @@ var shapes = [];
 var userList = [];
 var showBid = false;
 var spectatorColor = "#444444";
-var bidButtonBackgroundColor = '#aaaaaa';
-var bidButtonClickedColor = '#888888';
+
 var InputList;
 
 socket.on("message",function(message){  
@@ -93,7 +92,7 @@ socket.on('requestBid', function(){
 	showBid = false;
 	console.log('request bid');
 	showBidScreen(true);
-	$('.bidButton').css('background', bidButtonBackgroundColor);
+	$('#bidArray').find('.bidButton').removeClass('selected');
 });
 
 socket.on('allBidsIn', function(){
@@ -108,6 +107,16 @@ socket.on('requestCard', function(){
 
 socket.on('allCardsIn', function(){
 	console.log('all cards in');
+});
+
+socket.on('playerLeadsRound', function(playerLeads){
+	console.log('Does the player lead the round? ', playerLeads);
+	if(playerLeads){
+		$('#leadMessage').css('display', 'flex');
+	} else {
+		$('#leadMessage').css('display', 'none');
+	}
+	resizeCanvas();
 });
 
 $('#submit').click(function(){ /*listening to the button click using Jquery listener*/
@@ -136,9 +145,11 @@ $('#title').click(function(){
 });
 
 $('.bidButton').click(function(){
-	$('.bidButton').css('background', bidButtonBackgroundColor);
-	$(this).css('background', bidButtonClickedColor);
-	socket.emit('recieveBid', parseInt($(this).attr('id'))); 
+	$(this).parent().find('.bidButton').removeClass('selected');
+	$(this).addClass('selected');
+	let val = parseInt($(this).attr('id'));
+	socket.emit('recieveBid', val); 
+	console.log(val);
 	return false;
 });
 
@@ -173,6 +184,7 @@ function checkClick(event){
 
 function showBidScreen(show){
 	$('#bidOverlay').css('display', (show) ? 'flex' : 'none');
+	resizeCanvas();
 }
 
 //drawing stuff
@@ -202,7 +214,7 @@ function draw(){
 	);
 	ctx.fill();
 	
-	//draw selected
+	//draw played or selected cards on the table
 	var startPlayer = 0;
 	for( i = 0; i < userList.length; i += 1 ){
 		if(userList[i].id === socket.id){

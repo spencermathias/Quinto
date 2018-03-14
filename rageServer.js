@@ -1,3 +1,9 @@
+//TODO:
+// rejoin mechanics
+// crown over the leader
+// fix the board stretching
+// make the code more object oriented
+
 var express = require("express");
 var http = require("http");
 var io = require("socket.io");
@@ -397,7 +403,9 @@ function startRound() {
     console.log(__line, "round: " + currentRound);
 	nextToLeadHand = currentTurn = nextToLeadRound%players.length;
 	nextToLeadRound += 1; //next person in order starts round
-	console.log(__line,players[currentTurn%players.length].userData.userName + " leads this round!");
+	console.log(__line,players[currentTurn].userData.userName + " leads this round!"); //might need to mod by players.length
+	
+	players[currentTurn].emit('playerLeadsRound',true);
 	message(io.sockets, players[currentTurn%players.length].userData.userName + " leads this round!", gameColor);
 	
     //console.log(__line,"deck length: ", deck.length);4
@@ -520,9 +528,13 @@ function checkForAllBids() {
 		if (allBidsIn) {
 			console.log(__line,"All Bids In");
 			io.sockets.emit("allBidsIn");
+			let bidTotal = 0; //show how many is bid on total
 			players.forEach(function(player) {
 				console.log(__line,"Bid for: " + player.userData.userName + ": " + player.userData.bid);
+				bidTotal += player.userData.bid;
+				player.emit('playerLeadsRound', false); //turn off 'you lead' sign
 			});
+			message( io.sockets, bidTotal + " bid on " + currentRound, gameColor);
 			gameStatus = gameMode.PLAY;
 			tallyScoreFromHand(); //show initial score
 			getHand();

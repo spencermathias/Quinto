@@ -50,8 +50,8 @@
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-	/*border:1px solid #ffffff;*/
 	cursor: default;
+	border:1px solid #ffffff;
 }
 
 #sidebar {
@@ -109,7 +109,7 @@
 #users{
 	display: flex;
 	flex-direction: column;
-	height: 10%;
+	height: 20%;
 }
 
 #userlist{
@@ -125,7 +125,7 @@
 #chat{
 	display: flex;
 	flex-direction: column;
-	height: 90%;
+	height: 80%;
 }
 
 #chatlog{
@@ -140,7 +140,7 @@
 }
 
 #bidOverlay{
-	display: none;
+	display: flex;
 	background: rgba(0,0,0,.5);
 	align-items: center;
 	justify-content: center;
@@ -154,6 +154,7 @@
 	margin-top: .5vh;
 	font-size: 3vh;
 	max-height: 30px;
+	/* border:1px solid #ffffff; */
 }
 
 #bidArray{
@@ -163,8 +164,20 @@
 	flex-direction: row;
 	margin: .5vh;
 	margin-top: 0;
+	margin-bottom: 0;
 	padding: .5vh;
 	width: 100%;
+	/* border:1px solid #ffffff; */
+}
+
+#leadMessage{
+	display: none;
+	color: red;
+	font-size: 3vh;
+	/* max-height: 30px; */
+	margin-top: 0;
+	margin-bottom: .5vh;
+	/* border:1px solid #ffffff; */
 }
 
 .bidButton {
@@ -185,7 +198,11 @@
 	padding: .5vh;
 }
 
-.bidButton::hover{
+.bidButton.selected{
+	background: #888888;
+}
+
+.bidButton:hover {
 	background: #888888;
 }
 

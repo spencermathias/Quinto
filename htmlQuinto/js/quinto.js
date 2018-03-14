@@ -4,13 +4,18 @@
 
 //events
 window.addEventListener('load', function() {
-	var maybePreventPullToRefresh = false;
 	var lastTouch = {x:0, y:0};
 	
 	var touchstartHandler = function(e) {
 		lastTouch.x = e.touches[0].clientX;
 		lastTouch.y = e.touches[0].clientY;
-		console.log(lastTouch);
+		//console.log(lastTouch);
+		// if(!soundsAllowed){
+			// console.log('allow sounds');
+			// ding.play();
+			// //ding.pause();
+			// soundsAllowed = true;
+		// }
 	}
 
 	var touchmoveHandler = function(e) {
@@ -29,16 +34,52 @@ window.addEventListener('load', function() {
 
   document.addEventListener('touchstart', touchstartHandler, {passive: false });
   document.addEventListener('touchmove', touchmoveHandler, {passive: false });
+  console.log('added');
+  document.getElementById('gameBoard').addEventListener('click', checkClick);
+  document.getElementById('title').addEventListener('click', titleFunction);
+  document.getElementById('middle').addEventListener('click', allowAudio);
 });
 
-var tileWidth = 40 * window.devicePixelRatio;
-var tileHeight = 40 * window.devicePixelRatio;
-var tileFontSize = 30 * window.devicePixelRatio;
+$('#submit').click(function(){
+	var data = {
+		message:$('#message').val()         
+	}
+	socket.send(JSON.stringify(data)); 
+	$('#message').val('');
+	return false;
+});
+
+document.getElementById('title').style.color = '#ff0000'
+function titleFunction(){
+	let title = document.getElementById('title')
+	if ( title.style.color == 'rgb(255, 0, 0)' ){
+		title.style.color = '#00ff00';
+		socket.emit('ready', {ready: true});
+	} else {
+		title.style.color = '#ff0000';
+		socket.emit('ready', {ready: false});
+	}
+	return false;
+}
+
+var soundsAllowed = false;
+var ding = new Audio('../sounds/echoed-ding.mp3');
+function allowAudio(){
+	if (!soundsAllowed){
+		ding.load();
+		soundsAllowed = true;
+	}
+}
+
+
+var tileWidth = 40 //* window.devicePixelRatio;
+var tileHeight = 40 //* window.devicePixelRatio;
+var tileFontSize = 30 //* window.devicePixelRatio;
 var tilePadding = 5;
 var allTiles = [];
 var serverTiles = [];
 var selected = undefined;
-var scoreIsValid = false;
+var scoreIsValid = false;	
 
 var canvas = document.getElementById("gameBoard");
 var ctx = canvas.getContext("2d");
@@ -289,16 +330,16 @@ class Board {
 
 //socket stuff
 
-var socket = io("67.177.33.109"); //try public address //"24.42.206.240" for alabama
+var socket = io("24.10.166.44"); //try public address //"24.42.206.240" for alabama
 var trylocal = 0;
 socket.on('connect_error',function(error){
 	console.log("I got an error!", error);
 	console.log("socket to:", socket.disconnect().io.uri, "has been closed.");
 	if(!trylocal){ //prevent loops
-		if(window.location.href != 'http://192.168.0.21:8080/'){
-			window.location.replace('http://192.168.0.21:8080/');
+		if(window.location.href != 'http://192.168.1.21:8080/'){
+			window.location.replace('http://192.168.1.21:8080/');
 		}
-		socket.io.uri = "192.168.0.21:8080";
+		socket.io.uri = "192.168.1.21:8080";
 		console.log("Switching to local url:", socket.io.uri);
 		console.log("Connecting to:",socket.connect().io.uri);
 		trylocal = 1;
@@ -393,8 +434,12 @@ socket.on('userList',function(data){
 			string = string + " " + data[i].score;
 			
 			if(data[i].id == socket.id){
+				if(soundsAllowed && !myTurn && data[i].color == yourTurnColor){
+					ding.play(); //play ding when it becomes your turn
+				} 
+				myTurn = data[i].color == yourTurnColor; //update old status
+				
 				myUserlistIndex = i;
-				myTurn = (data[i].color == yourTurnColor);
 				myUserlistString = string;
 			}
 		}
@@ -454,25 +499,6 @@ socket.on('boardState', function(recievedBoardState){
 	}
 	
 	updatePlayValidity();
-});
-
-$('#submit').click(function(){
-	var data = {
-		message:$('#message').val()         
-	}
-	socket.send(JSON.stringify(data)); 
-	$('#message').val('');
-	return false;
-});
-$('#title').click(function(){
-	if ( $(this).css('color') == 'rgb(255, 0, 0)'){
-		<!-- $(this).css('color', '#00ff00'); -->
-		socket.emit('ready', {ready: true});
-	} else {
-		<!-- $(this).css('color', '#ff0000'); -->
-		socket.emit('ready', {ready: false});
-	}
-	return false;
 });
 
 function updatePlayValidity(){
@@ -585,10 +611,10 @@ function resizeCanvas(){
 }
 
 function resizeDrawings(){
-	tileWidth = 40 * window.devicePixelRatio;
-	tileHeight = 40 * window.devicePixelRatio;
+	tileWidth = 40; //* window.devicePixelRatio;
+	tileHeight = 40; //* window.devicePixelRatio;
 	tilePadding = tileWidth/20;
-	tileFontSize = 30 * window.devicePixelRatio;
+	tileFontSize = 30; //* window.devicePixelRatio;
 	board.x = canvas.width/2;
 	board.y = canvas.height/2;
 	board.rowThickness = tileHeight + 2*tilePadding;

@@ -229,15 +229,18 @@ io.sockets.on("connection", function(socket) {
 });
 
 function nextTurn(){
-	currentTurn = (currentTurn + 1) % players.length;
-	if(players[currentTurn].userData.tiles.length != 0){
-		console.log("It is " + players[currentTurn].userData.userName + "'s turn!")
-		message(players[currentTurn], "It is your turn!", gameColor);
+	if(checkEnd()){
+		gameEnd();
 	} else {
-		players[currentTurn].userData.skippedTurn = true;
-		if(checkEnd()){gameEnd();} else {nextTurn();}
+		currentTurn = (currentTurn + 1) % players.length;
+		if(players[currentTurn].userData.tiles.length != 0){
+			console.log("It is " + players[currentTurn].userData.userName + "'s turn!")
+			message(players[currentTurn], "It is your turn!", gameColor);
+		} else {
+			players[currentTurn].userData.skippedTurn = true;
+			nextTurn();
+		}
 	}
-	if(checkEnd()){gameEnd();}
 }
 
 function message(socket, message, color){
@@ -472,15 +475,17 @@ function gameEnd() {
     console.log(__line,"gameEnd");
     updateBoard(io.sockets, notReadyTitleColor, false);
 
-	message( io.sockets, "THE GAME HAS ENDED", gameColor);
+	message(io.sockets, "THE GAME HAS ENDED", gameColor);
 	message(io.sockets, "Scores: ", gameColor);
+	let total = 0;
 	for( var i = 0; i < players.length; i += 1){
 		for(var tile = 0; tile < players[i].userData.tiles.length; tile++){
 			players[i].userData.score -= players[i].userData.tiles[tile].number;
 		}
 		message(io.sockets, players[i].userData.userName + ": " + players[i].userData.score + "\n", gameColor);
-		//console.log(players[i].userData.userName, players[i].userData.score);
+		total += players[i].userData.score;
 	}
+	message(io.sockets, "Total score: " + total, gameColor);
 	
     players = [];
 	spectators = [];

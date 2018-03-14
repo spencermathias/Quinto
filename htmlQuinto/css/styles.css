@@ -114,7 +114,7 @@
 #users{
 	display: flex;
 	flex-direction: column;
-	height: 10%;
+	height: 20%;
 }
 
 #userlist{

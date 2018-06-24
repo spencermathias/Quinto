@@ -2,19 +2,21 @@
 Raspberry pi realtime data server based on node.js express and socket.io.
 
 To Use:
-1. download node from nodejs.org. Select the arm v6 version for raspberry pi A, B, or B+. For now, the current file  is node-v7.7.1-linux-armv61
+0. find out what arm version the cpu on your rasperry pi is with the command: cat /proc/cpuinfo
 
-2. extract with: tar -xvf node-v7.7.1-linux-armv6l.tar.gz 
+1. download node from nodejs.org. Go to other downloads and select the arm version that matches the info from the above step.
 
-3. enter directory with: cd node-v7.7.1-linux-armv6l
+2. extract the downloaded file with: tar -xvf 
+
+3. enter the extracted directory with: cd 
 
 4. copy to usr/local with: sudo cp -R * /usr/local/
 
 5. check if it has installed with: node -v
 
-  it should return: v7.7.1
+  it should return the version that you downloaded
 
-5. remove old files with: rm -r node-v7.7.1-linux-armv6l && rm node-v7.7.1-linux-armv6l.tar.xz
+5. (optional) remove the downloaded and extracted files with: rm -r
 
 6. npm install express --save
   The warnings at the end are normal

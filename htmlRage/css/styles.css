@@ -140,7 +140,7 @@
 }
 
 #bidOverlay{
-	display: flex;
+	display: none; /*none*/
 	background: rgba(0,0,0,.5);
 	align-items: center;
 	justify-content: center;
@@ -172,7 +172,7 @@
 
 #leadMessage{
 	display: none;
-	color: red;
+	color: yellow;
 	font-size: 3vh;
 	/* max-height: 30px; */
 	margin-top: 0;

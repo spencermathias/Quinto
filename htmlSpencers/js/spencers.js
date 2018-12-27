@@ -3,6 +3,13 @@
 // put chat log behind a button for mobile; only show the last message for a second
 
 //events
+
+//network definitions
+const localAddress = 'localhost'
+const localPort = '8080'
+const publicAddress = 'alanisboard.ddns.net'
+
+
 window.addEventListener('load', function() {
 	var lastTouch = {x:0, y:0};
 	
@@ -214,8 +221,176 @@ class ButtonHalf{
 			ctx.strokeStyle = this.outlineColor;
 			//debugger;
 			roundRect(ctx, this.clickArea.minX, this.clickArea.minY, this.width, this.height, this.radius, this.fillColor != undefined, this.outlineColor != undefined);
-
+			
+			var dotColor = '#000000';
+			var dotRadius = this.width*0.05;
+			
+			var lineColor = '#000000';
+			var arrowLength = dotRadius*1.5;
+			
+			var twoArrowWidth = this.width*0.8;
+			var oneArrowWidth = twoArrowWidth/2;
+			
+			var twoArrowHeight = this.width*0.8;
+			var oneArrowHeight = twoArrowWidth/2;
+			
 			//draw arrows
+			switch (this.shape){
+				/*case 'DR': break;
+				case 'DL': break;
+				case 'RU': break;
+				case 'RD': break;
+				case 'LU': break;
+				case 'LD': break;
+				case 'UR': break;
+				case 'UL': break;
+				case 'L':  break;
+				case 'R':  break;
+				case 'U':  break;
+				case 'D':  break;*/
+				case 'DD': 
+					//line
+					ctx.beginPath();
+					ctx.moveTo(this.x + dotRadius/2, this.y - twoArrowHeight/2);
+					ctx.lineTo(this.x + dotRadius/2, this.y + twoArrowHeight/2);
+					ctx.lineTo(this.x - dotRadius/2, this.y + twoArrowHeight/2);
+					ctx.lineTo(this.x - dotRadius/2, this.y - twoArrowHeight/2);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//arrow
+					ctx.beginPath();
+					ctx.moveTo(this.x + arrowLength, this.y + twoArrowHeight/2 - arrowLength );
+					ctx.lineTo(this.x			   , this.y + twoArrowHeight/2			 	 );
+					ctx.lineTo(this.x - arrowLength, this.y + twoArrowHeight/2 - arrowLength );
+					ctx.lineTo(this.x + arrowLength, this.y + twoArrowHeight/2 - arrowLength );
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//dot1
+					ctx.beginPath();
+					ctx.arc(
+						this.x, 
+						this.y + twoArrowWidth/2 - dotRadius, 
+						dotRadius, 0, 2 * Math.PI, false);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//dot2
+					ctx.beginPath();
+					ctx.arc(
+						this.x, 
+						this.y, 
+						dotRadius, 0, 2 * Math.PI, false);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+				break;
+				case 'UU': 
+					//line
+					ctx.beginPath();
+					ctx.moveTo(this.x + dotRadius/2, this.y - twoArrowHeight/2);
+					ctx.lineTo(this.x + dotRadius/2, this.y + twoArrowHeight/2);
+					ctx.lineTo(this.x - dotRadius/2, this.y + twoArrowHeight/2);
+					ctx.lineTo(this.x - dotRadius/2, this.y - twoArrowHeight/2);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//arrow
+					ctx.beginPath();
+					ctx.moveTo(this.x + dotRadius/2, this.y - twoArrowHeight/2 + arrowLength );
+					ctx.lineTo(this.x + arrowLength, this.y - twoArrowHeight/2 + arrowLength );
+					ctx.lineTo(this.x			   , this.y - twoArrowHeight/2				);
+					ctx.lineTo(this.x - arrowLength, this.y - twoArrowHeight/2 + arrowLength );
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//dot1
+					ctx.beginPath();
+					ctx.arc(
+						this.x, 
+						this.y + twoArrowWidth/2 - dotRadius, 
+						dotRadius, 0, 2 * Math.PI, false);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//dot2
+					ctx.beginPath();
+					ctx.arc(
+						this.x, 
+						this.y, 
+						dotRadius, 0, 2 * Math.PI, false);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+				break;
+				case 'LL': 
+					//line
+					ctx.beginPath();
+					ctx.moveTo(this.x - twoArrowWidth/2, this.y + dotRadius/2);
+					ctx.lineTo(this.x + twoArrowWidth/2, this.y + dotRadius/2);
+					ctx.lineTo(this.x + twoArrowWidth/2, this.y - dotRadius/2);
+					ctx.lineTo(this.x - twoArrowWidth/2, this.y - dotRadius/2);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//arrow
+					ctx.beginPath();
+					ctx.moveTo(this.x - twoArrowWidth/2 + arrowLength, this.y + dotRadius/2);
+					ctx.lineTo(this.x - twoArrowWidth/2 + arrowLength, this.y + arrowLength);
+					ctx.lineTo(this.x - twoArrowWidth/2, this.y);
+					ctx.lineTo(this.x - twoArrowWidth/2 + arrowLength, this.y - arrowLength);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//dot1
+					ctx.beginPath();
+					ctx.arc(this.x + twoArrowWidth/2 - dotRadius, this.y, dotRadius, 0, 2 * Math.PI, false);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//dot2
+					ctx.beginPath();
+					ctx.arc(this.x, this.y, dotRadius, 0, 2 * Math.PI, false);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+				break;
+				case 'RR': 
+					//line
+					ctx.beginPath();
+					ctx.moveTo(this.x - twoArrowWidth/2, this.y + dotRadius/2);
+					ctx.lineTo(this.x + twoArrowWidth/2, this.y + dotRadius/2);
+					ctx.lineTo(this.x + twoArrowWidth/2, this.y - dotRadius/2);
+					ctx.lineTo(this.x - twoArrowWidth/2, this.y - dotRadius/2);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//arrow
+					ctx.beginPath();
+					ctx.moveTo(this.x + twoArrowWidth/2 - arrowLength, this.y + dotRadius/2);
+					ctx.lineTo(this.x + twoArrowWidth/2 - arrowLength, this.y + arrowLength);
+					ctx.lineTo(this.x + twoArrowWidth/2, this.y);
+					ctx.lineTo(this.x + twoArrowWidth/2 - arrowLength, this.y - arrowLength);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//dot1
+					ctx.beginPath();
+					ctx.arc(this.x - twoArrowWidth/2 + dotRadius, this.y, dotRadius, 0, 2 * Math.PI, false);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//dot2
+					ctx.beginPath();
+					ctx.arc(this.x, this.y, dotRadius, 0, 2 * Math.PI, false);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+				break;
+				default: 
+					ctx.beginPath();
+					ctx.arc(this.x, this.y, dotRadius, 0, 2 * Math.PI, false);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+				break;
+			};
 			/*ctx.font = '' + this.fontSize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
 			ctx.fillStyle = this.textColor;
 			ctx.strokeStyle = this.textOutlineColor;
@@ -323,9 +498,9 @@ class Board {
 		this.columns = columns;
 		this.rowThickness = rowThickness;
 		this.columnThickness = columnThickness;
-		this.borderColor = '#0000CD';
-		this.backgroundColor = '#4682B4';
-		this.lineColor = '#B0C4DE';
+		this.borderColor = '#ffebcd';
+		this.backgroundColor = '#8B4513';
+		this.lineColor = '#ffebcd';
 		this.lineWidth = 2;
 		
 	}
@@ -419,16 +594,18 @@ class Board {
 
 //socket stuff
 
-var socket = io("localhost:8080"); //try public address //"24.42.206.240" for alabama
+var socket = io(publicAddress); //try public address //"24.42.206.240" for alabama
 var trylocal = 0;
 socket.on('connect_error',function(error){
 	console.log("I got an error!", error);
 	console.log("socket to:", socket.disconnect().io.uri, "has been closed.");
 	if(!trylocal){ //prevent loops
-		if(window.location.href != 'http://localhost:8080/'){
-			window.location.replace('http://localhost:8080/');
+		var internalShortAddress = ''+localAddress+':'+localPort;
+		var internalAddress = 'http://'+internalShortAddress+'/';
+		if(window.location.href != internalAddress){
+			window.location.replace(internalAddress);
 		}
-		socket.io.uri = "192.168.0.21:8080";
+		socket.io.uri = internalShortAddress;
 		console.log("Switching to local url:", socket.io.uri);
 		console.log("Connecting to:",socket.connect().io.uri);
 		trylocal = 1;
@@ -556,7 +733,7 @@ socket.on('tiles', function(tiles){
 	}
 	myTiles = []; //delete my tiles
 	for(var i = 0; i < tiles.length; i++){
-		var tile = new doubleButton(tiles[i], (canvas.width/2) + (tileWidth + 20) * (i-(tiles.length-1)/2) , canvas.height - (tileHeight + 20), tileWidth*2, tileHeight, tileFontSize);
+		var tile = new doubleButton(tiles[i], (canvas.width/2) + (tileWidth*2 + 20) * (i-(tiles.length-1)/2) , canvas.height - (tileHeight + 20), tileWidth*2, tileHeight, tileFontSize);
 		tile.fillColor = newTileColor;
 		tile.drawOutline(placeholderColor); //placeholder outline
 		shapes[0].concat(tile.subButtons);//1st layer

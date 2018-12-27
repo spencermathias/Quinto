@@ -315,8 +315,8 @@ function gameStart() {
 	updateBoard(io.sockets, readyTitleColor, true);
 	currentTurn = Math.floor(Math.random()*players.length); //random starting person
 
-	console.log(__line,players[currentTurn%players.length].userData.userName + " starts the game!");
-	message(io.sockets, players[currentTurn%players.length].userData.userName + " starts the game!", gameColor);
+	//console.log(__line,players[currentTurn%players.length].userData.userName + " starts the game!");
+	//message(io.sockets, players[currentTurn%players.length].userData.userName + " starts the game!", gameColor);
 	
     tiles = makeTiles(); //deck to deal to players
 	//console.log(__line, "cards", tiles);

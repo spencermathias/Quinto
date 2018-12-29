@@ -236,18 +236,67 @@ class ButtonHalf{
 			
 			//draw arrows
 			switch (this.shape){
-				/*case 'DR': break;
+				
+				/*case 'L':  break;
+				case 'R':  break;
+				case 'U':  break;
+				case 'D':  break;
+				case 'DR': break;
 				case 'DL': break;
 				case 'RU': break;
 				case 'RD': break;
 				case 'LU': break;
 				case 'LD': break;
-				case 'UR': break;
-				case 'UL': break;
-				case 'L':  break;
-				case 'R':  break;
-				case 'U':  break;
-				case 'D':  break;*/
+				case 'UR': break;*/
+				case 'UL': 
+					//line
+					ctx.beginPath();
+					ctx.moveTo(this.x - oneArrowWidth/2, this.y + oneArrowHeight/2);
+					ctx.lineTo(this.x - oneArrowWidth/2, this.y - oneArrowHeight/2);
+					ctx.lineTo(this.x + oneArrowWidth/2, this.y - oneArrowHeight/2);
+					ctx.lineWidth = dotRadius;
+					ctx.strokeStyle = lineColor;
+					ctx.stroke();
+					/*ctx.moveTo(this.x - oneArrowWidth/2 + dotRadius/2, this.y - oneArrowHeight/2 + dotRadius/2);
+					ctx.lineTo(this.x + oneArrowWidth/2 - dotRadius/2, this.y - oneArrowHeight/2 + dotRadius/2);
+					ctx.lineTo(this.x + oneArrowWidth/2 - dotRadius/2, this.y - oneArrowHeight/2 - dotRadius/2);
+					ctx.lineTo(this.x - oneArrowWidth/2 - dotRadius/2, this.y - oneArrowHeight/2 - dotRadius/2);
+					
+					ctx.lineTo(this.x - oneArrowWidth/2 + dotRadius/2, this.y + oneArrowHeight/2);
+					ctx.lineTo(this.x - dotRadius/2, this.y + oneArrowHeight/2);
+					ctx.lineTo(this.x - dotRadius/2, this.y - oneArrowHeight/2);
+					ctx.fillStyle = lineColor;
+					ctx.fill();*/
+					
+					
+					//arrow
+					ctx.beginPath();
+					ctx.moveTo(this.x + oneArrowWidth/2 + arrowLength, this.y - oneArrowHeight/2);
+					ctx.lineTo(this.x + oneArrowWidth/2, this.y - oneArrowHeight/2 - arrowLength);
+					ctx.lineTo(this.x + oneArrowWidth/2, this.y - oneArrowHeight/2 + arrowLength);
+					
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//dot1
+					ctx.beginPath();
+					ctx.arc(
+						this.x - oneArrowWidth/2, 
+						this.y + oneArrowHeight/2, 
+						dotRadius, 0, 2 * Math.PI, false);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+					
+					//dot2
+					ctx.beginPath();
+					ctx.arc(
+						this.x - oneArrowWidth/2, 
+						this.y - oneArrowHeight/2, 
+						dotRadius, 0, 2 * Math.PI, false);
+					ctx.fillStyle = dotColor;
+					ctx.fill();
+				
+				break;
 				case 'DD': 
 					//line
 					ctx.beginPath();
@@ -255,7 +304,7 @@ class ButtonHalf{
 					ctx.lineTo(this.x + dotRadius/2, this.y + twoArrowHeight/2);
 					ctx.lineTo(this.x - dotRadius/2, this.y + twoArrowHeight/2);
 					ctx.lineTo(this.x - dotRadius/2, this.y - twoArrowHeight/2);
-					ctx.fillStyle = dotColor;
+					ctx.fillStyle = lineColor;
 					ctx.fill();
 					
 					//arrow
@@ -263,7 +312,7 @@ class ButtonHalf{
 					ctx.moveTo(this.x + arrowLength, this.y + twoArrowHeight/2 - arrowLength );
 					ctx.lineTo(this.x			   , this.y + twoArrowHeight/2			 	 );
 					ctx.lineTo(this.x - arrowLength, this.y + twoArrowHeight/2 - arrowLength );
-					ctx.lineTo(this.x + arrowLength, this.y + twoArrowHeight/2 - arrowLength );
+					//ctx.lineTo(this.x + arrowLength, this.y + twoArrowHeight/2 - arrowLength );
 					ctx.fillStyle = dotColor;
 					ctx.fill();
 					
@@ -292,7 +341,7 @@ class ButtonHalf{
 					ctx.lineTo(this.x + dotRadius/2, this.y + twoArrowHeight/2);
 					ctx.lineTo(this.x - dotRadius/2, this.y + twoArrowHeight/2);
 					ctx.lineTo(this.x - dotRadius/2, this.y - twoArrowHeight/2);
-					ctx.fillStyle = dotColor;
+					ctx.fillStyle = lineColor;
 					ctx.fill();
 					
 					//arrow
@@ -878,8 +927,8 @@ function resizeCanvas(){
 }
 
 function resizeDrawings(){
-	tileWidth = 40; //* window.devicePixelRatio;
-	tileHeight = 40; //* window.devicePixelRatio;
+	tileWidth = 80; //* window.devicePixelRatio;
+	tileHeight = 80; //* window.devicePixelRatio;
 	tilePadding = tileWidth/20;
 	tileFontSize = 30; //* window.devicePixelRatio;
 	board.x = canvas.width/2;

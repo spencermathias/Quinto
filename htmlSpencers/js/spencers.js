@@ -1,5 +1,5 @@
 // button to get new tiles
-// print new points to the chat log or make a grid showing all turn scores and total
+// print new points to the cht log or make a grid showing all turn scores and total
 // put chat log behind a button for mobile; only show the last message for a second
 
 //events
@@ -7,7 +7,7 @@
 //network definitions
 const localAddress = 'localhost'
 const localPort = '8080'
-const publicAddress = 'alanisboard.ddns.net'
+const publicAddress = '192.168.0.59:8080'
 
 
 window.addEventListener('load', function() {
@@ -184,6 +184,140 @@ class Tile extends Button{
 	}
 }
 
+function arrowdraw(ctx,x,y,width,height,dr){
+	ctx.save();	
+	var dotRadius = width*0.05;
+	if(dr.length == 0){
+		ctx.fillStyle='red';
+		ctx.beginPath();
+		ctx.moveTo(x,y);
+		ctx.arc(
+			x,y, 
+			dotRadius, 0, 2 * Math.PI, false);
+		ctx.fill();
+		ctx.restore();
+		return;
+	} 
+	//parse dr (directions)
+	var dy = 0;
+	var dx = 0;
+	var miny = 0
+	var maxy = 0
+	var minx = 0
+	var maxx = 0
+	
+	for(var i = 0; i<dr.length; i++){
+		var c = dr[i];
+		switch(c){
+			case 'U':
+				dy -= 1;
+				miny = Math.min(miny,dy);
+			break;
+			case 'R':
+				dx += 1; 
+				maxx = Math.max(maxx,dx);
+			break;
+			case 'D':
+				dy += 1; 
+				maxy = Math.max(maxy,dy);
+			break;
+			case 'L':
+				dx -= 1; 
+				minx = Math.min(minx,dx);
+			break;
+		}
+	}
+	
+	
+	var oneArrowWidth = width*0.4
+	var oneArrowHeight = height*0.4
+	var arrowLength = dotRadius*2;
+	var totArrowHeight = 1
+	var totArrowWidtht = 1
+	
+	if ((maxx-minx)!=0){
+		totArrowWidtht = Math.min((maxx-minx)*oneArrowWidth,width*0.9)
+		oneArrowWidth = (totArrowWidtht-dotRadius)/(maxx-minx)
+	}
+	if ((maxy-miny)!=0){
+		totArrowHeight = Math.min((maxy-miny)*oneArrowHeight,height*0.9)
+		oneArrowHeight = totArrowHeight/(maxy-miny)
+	}
+	
+	//draw
+	
+	var dotColor = '#000000';
+	var lineColor = '#000000';
+	
+	ctx.fillStyle = dotColor;
+	ctx.strokeStyle = lineColor;
+	ctx.lineWidth = dotRadius;
+	
+	var curX = x-totArrowWidtht/2-minx*oneArrowWidth
+	var curY = y-totArrowHeight/2-miny*oneArrowHeight
+	//Lines
+	ctx.beginPath();
+	ctx.moveTo(curX,curY)
+	for(var i = 0; i<dr.length; i++){
+		var c = dr[i];
+		switch(c){
+			case 'U':ctx.lineTo(curX,curY-=oneArrowHeight);break;
+			case 'R':ctx.lineTo(curX+=oneArrowWidth,curY); break;
+			case 'D':ctx.lineTo(curX,curY+=oneArrowHeight); break;
+			case 'L':ctx.lineTo(curX-=oneArrowWidth,curY); break;
+		}
+	}
+	ctx.stroke();
+	//arrow
+	ctx.beginPath();
+	ctx.moveTo(curX,curY)
+	var wRatio = .7;
+	switch(dr[dr.length-1]){
+		case 'U':
+			ctx.lineTo(curX-arrowLength*wRatio,curY);
+			ctx.lineTo(curX,curY-arrowLength);
+			ctx.lineTo(curX+arrowLength*wRatio,curY);
+		break;
+		case 'R':
+			ctx.lineTo(curX,curY+arrowLength*wRatio);
+			ctx.lineTo(curX+arrowLength,curY);
+			ctx.lineTo(curX,curY-arrowLength*wRatio)			
+		break;
+		case 'D':
+			ctx.lineTo(curX+arrowLength*wRatio,curY);
+			ctx.lineTo(curX,curY+arrowLength);
+			ctx.lineTo(curX-arrowLength*wRatio,curY);
+		break;
+		case 'L':
+			ctx.lineTo(curX,curY-arrowLength*wRatio);
+			ctx.lineTo(curX-arrowLength,curY);
+			ctx.lineTo(curX,curY+arrowLength*wRatio);
+		break;	
+	}
+	ctx.fillStyle = 'red';
+	ctx.fill();
+	//dots
+	
+	for(var i = dr.length-1; i>=0; i--){
+		ctx.beginPath();
+		ctx.fillStyle = 'black';
+		var c = dr[i];
+		switch(c){
+			case 'U':ctx.moveTo(curX,curY+=oneArrowHeight);break;
+			case 'R':ctx.moveTo(curX-=oneArrowWidth,curY); break;
+			case 'D':ctx.moveTo(curX,curY-=oneArrowHeight); break;
+			case 'L':ctx.moveTo(curX+=oneArrowWidth,curY); break;
+		}
+		ctx.arc(
+			curX,curY, 
+			dotRadius, 0, 2 * Math.PI, false);
+		if(i==0){ctx.fillStyle='purple'}
+		ctx.fill()
+	}
+	
+	ctx.restore();
+}
+
 class ButtonHalf{
 	constructor(x, y, width, height, direction, shape = '', fillColor, outlineColor, shapeColor, textOutlineColor, fontSize = 50){
 		this.updateSize(x,y,width,height,direction);
@@ -235,224 +369,7 @@ class ButtonHalf{
 			var oneArrowHeight = twoArrowWidth/2;
 			
 			//draw arrows
-			switch (this.shape){
-				
-				/*case 'L':  break;
-				case 'R':  break;
-				case 'U':  break;
-				case 'D':  break;
-				case 'DR': break;
-				case 'DL': break;
-				case 'RU': break;
-				case 'RD': break;
-				case 'LU': break;
-				case 'LD': break;
-				case 'UR': break;*/
-				case 'UL': 
-					//line
-					ctx.beginPath();
-					ctx.moveTo(this.x - oneArrowWidth/2, this.y + oneArrowHeight/2);
-					ctx.lineTo(this.x - oneArrowWidth/2, this.y - oneArrowHeight/2);
-					ctx.lineTo(this.x + oneArrowWidth/2, this.y - oneArrowHeight/2);
-					ctx.lineWidth = dotRadius;
-					ctx.strokeStyle = lineColor;
-					ctx.stroke();
-					/*ctx.moveTo(this.x - oneArrowWidth/2 + dotRadius/2, this.y - oneArrowHeight/2 + dotRadius/2);
-					ctx.lineTo(this.x + oneArrowWidth/2 - dotRadius/2, this.y - oneArrowHeight/2 + dotRadius/2);
-					ctx.lineTo(this.x + oneArrowWidth/2 - dotRadius/2, this.y - oneArrowHeight/2 - dotRadius/2);
-					ctx.lineTo(this.x - oneArrowWidth/2 - dotRadius/2, this.y - oneArrowHeight/2 - dotRadius/2);
-					
-					ctx.lineTo(this.x - oneArrowWidth/2 + dotRadius/2, this.y + oneArrowHeight/2);
-					ctx.lineTo(this.x - dotRadius/2, this.y + oneArrowHeight/2);
-					ctx.lineTo(this.x - dotRadius/2, this.y - oneArrowHeight/2);
-					ctx.fillStyle = lineColor;
-					ctx.fill();*/
-					
-					
-					//arrow
-					ctx.beginPath();
-					ctx.moveTo(this.x + oneArrowWidth/2 + arrowLength, this.y - oneArrowHeight/2);
-					ctx.lineTo(this.x + oneArrowWidth/2, this.y - oneArrowHeight/2 - arrowLength);
-					ctx.lineTo(this.x + oneArrowWidth/2, this.y - oneArrowHeight/2 + arrowLength);
-					
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-					
-					//dot1
-					ctx.beginPath();
-					ctx.arc(
-						this.x - oneArrowWidth/2, 
-						this.y + oneArrowHeight/2, 
-						dotRadius, 0, 2 * Math.PI, false);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-					
-					//dot2
-					ctx.beginPath();
-					ctx.arc(
-						this.x - oneArrowWidth/2, 
-						this.y - oneArrowHeight/2, 
-						dotRadius, 0, 2 * Math.PI, false);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-				
-				break;
-				case 'DD': 
-					//line
-					ctx.beginPath();
-					ctx.moveTo(this.x + dotRadius/2, this.y - twoArrowHeight/2);
-					ctx.lineTo(this.x + dotRadius/2, this.y + twoArrowHeight/2);
-					ctx.lineTo(this.x - dotRadius/2, this.y + twoArrowHeight/2);
-					ctx.lineTo(this.x - dotRadius/2, this.y - twoArrowHeight/2);
-					ctx.fillStyle = lineColor;
-					ctx.fill();
-					
-					//arrow
-					ctx.beginPath();
-					ctx.moveTo(this.x + arrowLength, this.y + twoArrowHeight/2 - arrowLength );
-					ctx.lineTo(this.x			   , this.y + twoArrowHeight/2			 	 );
-					ctx.lineTo(this.x - arrowLength, this.y + twoArrowHeight/2 - arrowLength );
-					//ctx.lineTo(this.x + arrowLength, this.y + twoArrowHeight/2 - arrowLength );
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-					
-					//dot1
-					ctx.beginPath();
-					ctx.arc(
-						this.x, 
-						this.y + twoArrowWidth/2 - dotRadius, 
-						dotRadius, 0, 2 * Math.PI, false);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-					
-					//dot2
-					ctx.beginPath();
-					ctx.arc(
-						this.x, 
-						this.y, 
-						dotRadius, 0, 2 * Math.PI, false);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-				break;
-				case 'UU': 
-					//line
-					ctx.beginPath();
-					ctx.moveTo(this.x + dotRadius/2, this.y - twoArrowHeight/2);
-					ctx.lineTo(this.x + dotRadius/2, this.y + twoArrowHeight/2);
-					ctx.lineTo(this.x - dotRadius/2, this.y + twoArrowHeight/2);
-					ctx.lineTo(this.x - dotRadius/2, this.y - twoArrowHeight/2);
-					ctx.fillStyle = lineColor;
-					ctx.fill();
-					
-					//arrow
-					ctx.beginPath();
-					ctx.moveTo(this.x + dotRadius/2, this.y - twoArrowHeight/2 + arrowLength );
-					ctx.lineTo(this.x + arrowLength, this.y - twoArrowHeight/2 + arrowLength );
-					ctx.lineTo(this.x			   , this.y - twoArrowHeight/2				);
-					ctx.lineTo(this.x - arrowLength, this.y - twoArrowHeight/2 + arrowLength );
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-					
-					//dot1
-					ctx.beginPath();
-					ctx.arc(
-						this.x, 
-						this.y + twoArrowWidth/2 - dotRadius, 
-						dotRadius, 0, 2 * Math.PI, false);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-					
-					//dot2
-					ctx.beginPath();
-					ctx.arc(
-						this.x, 
-						this.y, 
-						dotRadius, 0, 2 * Math.PI, false);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-				break;
-				case 'LL': 
-					//line
-					ctx.beginPath();
-					ctx.moveTo(this.x - twoArrowWidth/2, this.y + dotRadius/2);
-					ctx.lineTo(this.x + twoArrowWidth/2, this.y + dotRadius/2);
-					ctx.lineTo(this.x + twoArrowWidth/2, this.y - dotRadius/2);
-					ctx.lineTo(this.x - twoArrowWidth/2, this.y - dotRadius/2);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-					
-					//arrow
-					ctx.beginPath();
-					ctx.moveTo(this.x - twoArrowWidth/2 + arrowLength, this.y + dotRadius/2);
-					ctx.lineTo(this.x - twoArrowWidth/2 + arrowLength, this.y + arrowLength);
-					ctx.lineTo(this.x - twoArrowWidth/2, this.y);
-					ctx.lineTo(this.x - twoArrowWidth/2 + arrowLength, this.y - arrowLength);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-					
-					//dot1
-					ctx.beginPath();
-					ctx.arc(this.x + twoArrowWidth/2 - dotRadius, this.y, dotRadius, 0, 2 * Math.PI, false);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-					
-					//dot2
-					ctx.beginPath();
-					ctx.arc(this.x, this.y, dotRadius, 0, 2 * Math.PI, false);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-				break;
-				case 'RR': 
-					//line
-					ctx.beginPath();
-					ctx.moveTo(this.x - twoArrowWidth/2, this.y + dotRadius/2);
-					ctx.lineTo(this.x + twoArrowWidth/2, this.y + dotRadius/2);
-					ctx.lineTo(this.x + twoArrowWidth/2, this.y - dotRadius/2);
-					ctx.lineTo(this.x - twoArrowWidth/2, this.y - dotRadius/2);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-					
-					//arrow
-					ctx.beginPath();
-					ctx.moveTo(this.x + twoArrowWidth/2 - arrowLength, this.y + dotRadius/2);
-					ctx.lineTo(this.x + twoArrowWidth/2 - arrowLength, this.y + arrowLength);
-					ctx.lineTo(this.x + twoArrowWidth/2, this.y);
-					ctx.lineTo(this.x + twoArrowWidth/2 - arrowLength, this.y - arrowLength);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-					
-					//dot1
-					ctx.beginPath();
-					ctx.arc(this.x - twoArrowWidth/2 + dotRadius, this.y, dotRadius, 0, 2 * Math.PI, false);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-					
-					//dot2
-					ctx.beginPath();
-					ctx.arc(this.x, this.y, dotRadius, 0, 2 * Math.PI, false);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-				break;
-				default: 
-					ctx.beginPath();
-					ctx.arc(this.x, this.y, dotRadius, 0, 2 * Math.PI, false);
-					ctx.fillStyle = dotColor;
-					ctx.fill();
-				break;
-			};
-			/*ctx.font = '' + this.fontSize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
-			ctx.fillStyle = this.textColor;
-			ctx.strokeStyle = this.textOutlineColor;
-			ctx.translate(this.x, this.y);
-			if(this.textSlant){
-				ctx.rotate(Math.atan(this.height/this.width));
-			}
-			if(this.textColor != undefined){
-				ctx.fillText(this.text,0,0);
-			}
-			if(this.textOutline != undefined){
-				ctx.strokeText(this.text, 0, 0);
-			}*/
+			arrowdraw(ctx,this.x,this.y,this.width, this.height, this.shape)
 			ctx.restore();
 		}
 	}

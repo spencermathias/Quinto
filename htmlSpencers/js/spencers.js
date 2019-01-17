@@ -89,7 +89,8 @@ var tilePadding = 5;
 var allTiles = [];
 var serverTiles = [];
 var selected = undefined;
-var scoreIsValid = false;	
+var scoreIsValid = false;
+var moose=40	
 
 var canvas = document.getElementById("gameBoard");
 var ctx = canvas.getContext("2d");
@@ -184,21 +185,7 @@ class Tile extends Button{
 	}
 }
 
-function arrowdraw(ctx,x,y,width,height,dr){
-	ctx.save();	
-	var dotRadius = width*0.05;
-	if(dr.length == 0){
-		ctx.fillStyle='red';
-		ctx.beginPath();
-		ctx.moveTo(x,y);
-		ctx.arc(
-			x,y, 
-			dotRadius, 0, 2 * Math.PI, false);
-		ctx.fill();
-		ctx.restore();
-		return;
-	} 
-	//parse dr (directions)
+function parseShape(directions){
 	var dy = 0;
 	var dx = 0;
 	var miny = 0
@@ -206,8 +193,9 @@ function arrowdraw(ctx,x,y,width,height,dr){
 	var minx = 0
 	var maxx = 0
 	
-	for(var i = 0; i<dr.length; i++){
-		var c = dr[i];
+	
+	for(var i = 0; i<directions.length; i++){
+		var c = directions[i];
 		switch(c){
 			case 'U':
 				dy -= 1;
@@ -227,21 +215,45 @@ function arrowdraw(ctx,x,y,width,height,dr){
 			break;
 		}
 	}
-	
-	
+	var dmax = {'dy':dy,
+				'dx':dx,
+				'miny':miny,
+				'maxy':maxy,
+				'minx':minx,
+				'maxx':maxx
+				}
+	return(dmax);
+}
+
+function arrowdraw(ctx,x,y,width,height,dr){
+	ctx.save();	
+	var dotRadius = width*0.05;
+	if(dr.length == 0){
+		ctx.fillStyle='red';
+		ctx.beginPath();
+		ctx.moveTo(x,y);
+		ctx.arc(
+			x,y, 
+			dotRadius, 0, 2 * Math.PI, false);
+		ctx.fill();
+		ctx.restore();
+		return;
+	} 
+	var dmax=parseShape(dr)
 	var oneArrowWidth = width*0.4
 	var oneArrowHeight = height*0.4
 	var arrowLength = dotRadius*2;
 	var totArrowHeight = 1
 	var totArrowWidtht = 1
-	
-	if ((maxx-minx)!=0){
-		totArrowWidtht = Math.min((maxx-minx)*oneArrowWidth,width*0.9)
-		oneArrowWidth = (totArrowWidtht-dotRadius)/(maxx-minx)
+	var widthx = dmax.maxx-dmax.minx
+	var widthy = dmax.maxy-dmax.miny
+	if ((widthx)!=0){
+		totArrowWidtht = Math.min((widthx)*oneArrowWidth,width*0.9)
+		oneArrowWidth = (totArrowWidtht-dotRadius)/(widthx)
 	}
-	if ((maxy-miny)!=0){
-		totArrowHeight = Math.min((maxy-miny)*oneArrowHeight,height*0.9)
-		oneArrowHeight = totArrowHeight/(maxy-miny)
+	if ((widthy)!=0){
+		totArrowHeight = Math.min((widthy)*oneArrowHeight,height*0.9)
+		oneArrowHeight = totArrowHeight/(widthy)
 	}
 	
 	//draw
@@ -253,8 +265,8 @@ function arrowdraw(ctx,x,y,width,height,dr){
 	ctx.strokeStyle = lineColor;
 	ctx.lineWidth = dotRadius;
 	
-	var curX = x-totArrowWidtht/2-minx*oneArrowWidth
-	var curY = y-totArrowHeight/2-miny*oneArrowHeight
+	var curX = x-totArrowWidtht/2-dmax.minx*oneArrowWidth
+	var curY = y-totArrowHeight/2-dmax.miny*oneArrowHeight
 	//Lines
 	ctx.beginPath();
 	ctx.moveTo(curX,curY)
@@ -319,25 +331,26 @@ function arrowdraw(ctx,x,y,width,height,dr){
 }
 
 class ButtonHalf{
-	constructor(x, y, width, height, direction, shape = '', fillColor, outlineColor, shapeColor, textOutlineColor, fontSize = 50){
-		this.updateSize(x,y,width,height,direction);
+	constructor(x, y, width, height, sideObutton, shape = '', fillColor, outlineColor, shapeColor, textOutlineColor, parentID, fontSize = 50){
+		this.updateSize(x,y,width,height,sideObutton);
 		this.fillColor = fillColor;
 		this.outlineColor = outlineColor;
 		//this.textColor = textColor;
 		this.textOutlinecolor = textOutlineColor;
 		this.fontSize = fontSize;
 		this.shape = shape;
-		this.direction = direction;
+		this.sideObutton = sideObutton;
+		this.parentID=parentID
 		this.visible = true;
 	}
 	
-	updateSize(x,y,width,height,direction){
+	updateSize(x,y,width,height,sideObutton){
 		this.x = x;
 		this.y = y;
 		this.width = width;
 		this.height = height;
 		var rad = Math.min(this.width, this.height)/5;
-		switch(direction) {
+		switch(sideObutton) {
 			case 'U': this.radius = {tl: rad, tr: rad, br: 0, bl: 0}; break;
 			case 'R': this.radius = {tl: 0, tr: rad, br: rad, bl: 0}; break;
 			case 'D': this.radius = {tl: 0, tr: 0, br: rad, bl: rad}; break;
@@ -376,8 +389,25 @@ class ButtonHalf{
 	
 	click(){
 		console.log("This button half has not been overloaded yet!");
+		findButtonByID(this.parentID)
+		moveMoose(this.shape)
 	}
 	
+}
+function findButtonByID(ID){
+	for(var i=0; i<shapes.length; i++){
+		for (var j=0; j<shapes[i].length; j++){
+			if (shapes[i][j].parentID==ID){
+				var button=shapes[i][j]
+				button.visible=false
+			}
+		}
+	}	
+}
+function moveMoose(shape){
+	var move = parseShape(shape)
+	moose = moose+move.dx+move.dy*board.columns
+	selected = shapes[1][moose]
 }
 
 class doubleButton{
@@ -392,8 +422,8 @@ class doubleButton{
 			this.visible = false;
 		}
 		this.subButtons = [
-			new ButtonHalf(x-width/4,y,width/2, height,'L',arrowb,'#0000ff','#000000','#000000',undefined,fontSize),
-			new ButtonHalf(x+width/4,y,width/2, height,'R',arrowg,'#00ff00','#000000','#000000',undefined,fontSize)
+			new ButtonHalf(x-width/4,y,width/2, height,'L',arrowb,'#0000ff','#000000','#000000',undefined,tileData.id,fontSize),
+			new ButtonHalf(x+width/4,y,width/2, height,'R',arrowg,'#00ff00','#000000','#000000',undefined,tileData.id,fontSize)
 		];
 		this.tileData = tileData;
 		this.highlightColor = "";

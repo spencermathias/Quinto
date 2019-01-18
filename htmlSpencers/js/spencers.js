@@ -390,7 +390,7 @@ class ButtonHalf{
 	click(){
 		console.log("This button half has not been overloaded yet!");
 		findButtonByID(this.parentID)
-		moveMoose(this.shape)
+		moose=moveIt(this.shape,moose)
 	}
 	
 }
@@ -404,10 +404,17 @@ function findButtonByID(ID){
 		}
 	}	
 }
-function moveMoose(shape){
-	var move = parseShape(shape)
-	moose = moose+move.dx+move.dy*board.columns
-	selected = shapes[1][moose]
+function mod(it,n) {
+    return ((it%n)+n)%n;
+};
+
+function moveIt(shape,it){
+	var move = parseShape(shape)              
+	row=it-mod(it,board.columns)
+	it=row+mod(it+move.dx,board.columns)
+	it = mod(it+move.dy*board.columns,board.columns*board.rows)
+	selected = shapes[1][it]
+	return it
 }
 
 class doubleButton{

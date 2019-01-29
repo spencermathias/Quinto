@@ -44,10 +44,10 @@ try {
 	console.log("you must be client side!")
 } 
 
-let a = new Deck({suit:['♥','♦','♣','♠'], number:['A',2,3,4,5,6,7,8,9,10,'J','Q','K']}) //MSB->LSB
+/*let a = new Deck({suit:['♥','♦','♣','♠'], number:['A',2,3,4,5,6,7,8,9,10,'J','Q','K']}) //MSB->LSB
 
 let c = []
 for(let b = 0; b<52; b++){
 	c.push(a.getProperties(b))
 }
-console.log(c)
+console.log(c)*/

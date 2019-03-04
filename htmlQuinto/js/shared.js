@@ -2,7 +2,7 @@ shared = {
 	numberOfTilesForHand: 5,
 	blankTile: {owner: "board", number: -1, id: -1},
 	newBlankTile: function(){
-		return {owner: blankTile.owner, number: blankTile.number, id: blankTile.id};
+		return {owner: this.blankTile.owner, number: this.blankTile.number, id: this.blankTile.id};
 	},
 	checkNeighbors: function(oldboard,row,col){
 		var isConnected = false
@@ -29,16 +29,16 @@ shared = {
 		var rightCol = col + 1;
 
 		if(upperRow >= 0){
-			if(oldboard[upperRow][col].id != blankTile.id) {isConnected = true;}
+			if(oldboard[upperRow][col].id != this.blankTile.id) {isConnected = true;}
 		}
 		if(leftCol >= 0){//check left
-			if(oldboard[row][leftCol].id != blankTile.id) {isConnected = true;}
+			if(oldboard[row][leftCol].id != this.blankTile.id) {isConnected = true;}
 		}
 		if(lowerRow < boardRows){//check lower
-			if(oldboard[lowerRow][col].id != blankTile.id) {isConnected = true;}
+			if(oldboard[lowerRow][col].id != this.blankTile.id) {isConnected = true;}
 		}
 		if(rightCol < boardColumns){//check right
-			if(oldboard[row][rightCol].id != blankTile.id) {isConnected = true;}
+			if(oldboard[row][rightCol].id != this.blankTile.id) {isConnected = true;}
 		}
 		//console.log(__line, "is connected", isConnected);
 		return isConnected;
@@ -49,7 +49,7 @@ shared = {
 		//cannot have empty gap between played tiles
 		//sections that contain a played tile must add to a multiple of 5
 		var score = 0;
-		var corrected = ensureSubmittedIsPhysicallyPossible(playerTiles, submittedBoardState, currentBoardState, allTiles);
+		var corrected = this.ensureSubmittedIsPhysicallyPossible(playerTiles, submittedBoardState, currentBoardState, allTiles);
 		var skipped = corrected.changedTiles.length == 0;
 		if(corrected.error.length == 0){
 			//split board up into sections that contain newly played tiles
@@ -61,7 +61,7 @@ shared = {
 				//var subConnect = false;
 				var subsection = [];
 				for(var col = 0; col < corrected.boardState[row].length; col++){
-					if(corrected.boardState[row][col].id != blankTile.id){
+					if(corrected.boardState[row][col].id != this.blankTile.id){
 						subsection.push({pos: {row: row, col:col}, tile: corrected.boardState[row][col]});
 						if(corrected.changedTiles.indexOf(corrected.boardState[row][col]) >= 0){
 							containsNew = true;
@@ -90,7 +90,7 @@ shared = {
 				var subConnect = false;
 				var subsection = [];
 				for(var row = 0; row < corrected.boardState.length; row++){
-					if(corrected.boardState[row][col].id != blankTile.id){
+					if(corrected.boardState[row][col].id != this.blankTile.id){
 						subsection.push({pos: {row: row, col:col}, tile: corrected.boardState[row][col]});
 						if(corrected.changedTiles.indexOf(corrected.boardState[row][col]) >= 0){
 							containsNew = true;
@@ -140,13 +140,13 @@ shared = {
 				if(rowSections[row].length > 0){
 					if(rowSections[row][0].length > 1){
 						oneRunIsLongerThanOne = true;
-						if(rowSections[row][0].length > numberOfTilesForHand){
+						if(rowSections[row][0].length > this.numberOfTilesForHand){
 							runsShoterThanSix = false;
 						}
 						var groupConnects = false;
 						for(var i = 0; i < rowSections[row][0].length; i++){
 							subscore += rowSections[row][0][i].tile.number;
-							if(checkNeighbors(currentBoardState, rowSections[row][0][i].pos.row, rowSections[row][0][i].pos.col)){
+							if(this.checkNeighbors(currentBoardState, rowSections[row][0][i].pos.row, rowSections[row][0][i].pos.col)){
 								groupConnects = true;
 							}
 						}
@@ -155,7 +155,7 @@ shared = {
 						}
 					}
 				}
-				if(subscore % numberOfTilesForHand == 0){
+				if(subscore % this.numberOfTilesForHand == 0){
 					score += subscore;
 				} else {
 					multipleOfFive = false;
@@ -168,13 +168,13 @@ shared = {
 				if(colSections[col].length > 0){
 					if(colSections[col][0].length > 1){
 						oneRunIsLongerThanOne = true;
-						if(colSections[col][0].length > numberOfTilesForHand){
+						if(colSections[col][0].length > this.numberOfTilesForHand){
 							runsShoterThanSix = false;
 						}
 						var groupConnects = false;
 						for(var i = 0; i < colSections[col][0].length; i++){
 							subscore += colSections[col][0][i].tile.number;
-							if(checkNeighbors(currentBoardState, colSections[col][0][i].pos.row, colSections[col][0][i].pos.col)){
+							if(this.checkNeighbors(currentBoardState, colSections[col][0][i].pos.row, colSections[col][0][i].pos.col)){
 								groupConnects = true;
 							}
 						}
@@ -183,7 +183,7 @@ shared = {
 						}
 					}
 				}
-				if(subscore % numberOfTilesForHand == 0){
+				if(subscore % this.numberOfTilesForHand == 0){
 					score += subscore;
 				} else {
 					multipleOfFive = false;
@@ -194,11 +194,11 @@ shared = {
 			}
 
 			if(!runsShoterThanSix){
-				corrected.error += "Run lengths must be shorter than " + numberOfTilesForHand + "\n";
+				corrected.error += "Run lengths must be shorter than " + this.numberOfTilesForHand + "\n";
 			}
 
 			if(!multipleOfFive){
-				corrected.error += "A run was not a multiple of " + numberOfTilesForHand + "\n";
+				corrected.error += "A run was not a multiple of " + this.numberOfTilesForHand + "\n";
 			}
 
 			if(!oneRunIsLongerThanOne && !skipped){
@@ -223,18 +223,18 @@ shared = {
 	//all played tiles are in a line /
 		var playedTilesCoord = [];
 		var corrected = {error: "", boardState: [], changedTiles: []};
-		if(boardIsCorrectSize(submittedBoardState, boardState)){ //submitted board is the same as the actual board
+		if(this.boardIsCorrectSize(submittedBoardState, boardState)){ //submitted board is the same as the actual board
 			for(var row = 0; row < boardState.length; row++){
 				var correctedRow = [];
 				for(var col = 0; col < boardState[row].length; col++){
 					//ensure all submitted tiles are actual tiles
-					if(submittedBoardState[row][col].id == blankTile.id){ //make a submitted board using server side tiles
+					if(submittedBoardState[row][col].id == this.blankTile.id){ //make a submitted board using server side tiles
 						correctedRow.push(boardState[row][col]);
 					} else if(submittedBoardState[row][col].id < allTiles.length){
 						var tile = allTiles[submittedBoardState[row][col].id];
 						correctedRow.push(tile);
 						if(tile.id != boardState[row][col].id ){ //if a tile has changed
-							if(boardState[row][col].id == blankTile.id){ //if tile is empty on board state
+							if(boardState[row][col].id == this.blankTile.id){ //if tile is empty on board state
 								var tileIndex = -1;
 								for(var i = 0; i < playerTiles.length; i++){
 									if(playerTiles[i].id == tile.id){
@@ -252,7 +252,7 @@ shared = {
 							}
 						}
 					} else {
-						correctedRow.push(blankTile);
+						correctedRow.push(this.blankTile);
 						corrected.error += "Submitted non existant tile! \n";
 					}
 				}

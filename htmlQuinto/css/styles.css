@@ -18,7 +18,6 @@
 	font-variant: normal;
 	font-weight: 900;
 	line-height: 1.25;
-	
 }
 
 #header {
@@ -70,6 +69,7 @@
 	background: #888888;
 	overflow: hidden;
 	overflow-y: hidden;
+	height:100%;
 }
 
 #footer { 

@@ -333,7 +333,9 @@ class Board {
 
 //socket stuff
 
+
 var socket = io(publicAddress); //try public address //"24.42.206.240" for alabama
+
 var trylocal = 0;
 socket.on('connect_error',function(error){
 	console.log("I got an error!", error);

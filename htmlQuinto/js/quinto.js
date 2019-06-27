@@ -3,6 +3,9 @@
 // put chat log behind a button for mobile; only show the last message for a second
 
 //events
+var publicAddress = 'http://localhost:8080/';
+var internalAddress = 'http://localhost:8080/';
+
 window.addEventListener('load', function() {
 	var lastTouch = {x:0, y:0};
 	
@@ -253,7 +256,7 @@ class Board {
 				for(var row = 0; row < recievedBoardState.length; row++){
 					var line = [];
 					for(var col = 0; col < recievedBoardState[0].length; col++){
-						line.push(new Tile(newBlankTile(), 0, 0, tileHeight, tileWidth, tileFontSize));
+						line.push(new Tile(shared.newBlankTile(), 0, 0, tileHeight, tileWidth, tileFontSize));
 					}
 					boardState.push(line);
 				}
@@ -314,7 +317,7 @@ class Board {
 					boardState[i][j].updateSize(x+this.columnThickness/2, y+this.rowThickness/2, tileWidth, tileHeight);
 					newState[i][j].updateSize(x+this.columnThickness/2, y+this.rowThickness/2, tileWidth, tileHeight);
 					
-					if(newState[i][j].tileData.id != blankTile.id && boardState[i][j].tileData.id != blankTile.id){
+					if(newState[i][j].tileData.id != shared.blankTile.id && boardState[i][j].tileData.id != shared.blankTile.id){
 						newState[i][j].drawOutline('#ff0000');
 					}
 					shapes[1].push(newState[i][j]);//middle layer
@@ -330,16 +333,18 @@ class Board {
 
 //socket stuff
 
-var socket = io("67.177.33.109"); //try public address //"24.42.206.240" for alabama
+
+var socket = io(publicAddress); //try public address //"24.42.206.240" for alabama
+
 var trylocal = 0;
 socket.on('connect_error',function(error){
 	console.log("I got an error!", error);
 	console.log("socket to:", socket.disconnect().io.uri, "has been closed.");
 	if(!trylocal){ //prevent loops
-		if(window.location.href != 'http://192.168.0.60:8080/'){
-			window.location.replace('http://192.168.0.60:8080/');
+		if(window.location.href != internalAddress){
+			window.location.replace(internalAddress);
 		}
-		socket.io.uri = "192.168.0.60:8080";
+		socket.io.uri = internalAddress;
 		console.log("Switching to local url:", socket.io.uri);
 		console.log("Connecting to:",socket.connect().io.uri);
 		trylocal = 1;
@@ -462,7 +467,7 @@ socket.on('tiles', function(tiles){
 	serverTiles = tiles;
 	for (var i = 0; i < newState.length; i++){ //clear whats on board
 		for (var j = 0; j < newState[i].length; j++){
-			newState[i][j].updateData(newBlankTile());
+			newState[i][j].updateData(shared.newBlankTile());
 		}
 	}
 	myTiles = [];
@@ -488,10 +493,10 @@ socket.on('boardState', function(recievedBoardState){
 			for(var row = 0; row < boardState.length; row++){
 				var line = [];
 				for(var col = 0; col < boardState[0].length; col++){
-					var tile = new MoveTile(newBlankTile(), 0, 0, tileHeight, tileWidth, tileFontSize);
+					var tile = new MoveTile(shared.newBlankTile(), 0, 0, tileHeight, tileWidth, tileFontSize);
 					tile.fillColor = newTileColor;
 					line.push(tile);
-					//line.push(newBlankTile());
+					//line.push(shared.newBlankTile());
 				}
 				newState.push(line);
 			}
@@ -502,7 +507,7 @@ socket.on('boardState', function(recievedBoardState){
 });
 
 function updatePlayValidity(){
-	var check = validTilesToPlay(serverTiles, getTileData(newState), getTileData(boardState), allTiles);
+	var check = shared.validTilesToPlay(serverTiles, getTileData(newState), getTileData(boardState), allTiles);
 	if(check.error.length == 0){
 		$('#userListDiv'+myUserlistIndex)[0].innerHTML = (myUserlistString + " + " + check.score);
 	} else {

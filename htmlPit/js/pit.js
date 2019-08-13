@@ -140,42 +140,51 @@ class Button {
 	}
 } 
 
-/*class Tile extends Button{
-	constructor(tileData, x,y,width,height,fontSize){
-		var text = -1;
-		if(tileData != undefined){
-			text = tileData.number
-		}
-		super(x,y,width,height,text,defaultTileColor,'#000000','#000000',undefined,fontSize,false);
-		this.tileData = tileData;
-		this.visible = (text >= 0);
-		this.highlightColor = "";
+class Tile extends Button{
+	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant){
+		/*var text = -1;
+		if(tileData.name != undefined){
+			text = tileData.products.name
+		}*/
+		//super(x,y,width,height,text,defaultTileColor,'SteelBlue','Red',undefined,fontSize,true);
+		super(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant)
+		//this.tileData = tileData;
+		this.visible = (text.length >= 0);
+		this.highlightColor = "Magenta";
+		this.selected = false;
 	}
 	
 	drawOutline(color){
 		this.highlightColor = color;
 	}
 	
-	updateData(tileData){
-		this.tileData = tileData;
+	updateText(text){
+		/*this.tileData = tileData;
 		if(tileData != undefined){
-			this.text = this.tileData.number
-			this.visible = (this.tileData.number >= 0);
-		}
+			this.text = this.tileData.products.name;
+			this.visible = (this.text.length >= 0);*/
+		//}
+		this.text = text
+		this.visible = (this.text.length >= 0);
 	}
 	
 	draw(ctx){
-		if(this.highlightColor != ""){
-			//console.log(this.highlightColor);
+		if(this.selected != false){
+			
 			ctx.save();
 			ctx.fillStyle = this.highlightColor;
 			roundRect(ctx, this.x-(this.width/2 + tilePadding), this.y-(this.height/2 + tilePadding), this.width+2*tilePadding, this.height+2*tilePadding, this.width/8,true, false);
 			ctx.restore();
-			this.highlightColor = "";
+			//this.highlightColor = "";
 		}
 		super.draw(ctx);
 	}
-}*/
+	
+	click(){
+		console.log(this);
+		this.selected = !this.selected;
+	}
+}
 
 /*class MoveTile extends Tile	{
 	constructor(tileData, x,y,width,height,fontSize){
@@ -203,6 +212,56 @@ class Button {
 		//console.log("I am tile of number: " + this.tileData.number + " and Id: " + this.tileData.id, this);
 	}
 }*/
+
+class BiddingInterface{
+	constructor(user,y,textsize){
+		this.receive = [];
+		this.send = [];
+		var nameWidth = ctx.measureText(user.userName).width;
+		var x = (canvas.width/2)-(nameWidth/2)-(textsize/2)-(textsize*7);
+		for (var i = 1; i <= 4; i++){
+			this.receive.push(new Tile(x,y,textsize,textsize,i,'LightSeaGreen','#000000','#000000','#000000',textsize/2,false));
+			x += textsize*2;
+		}
+		var x = (canvas.width/2)+(nameWidth/2)+(textsize/2)+(textsize*1);
+		for (var i = 1; i <= 4; i++){
+			shapes.send.push(new Tile(x,y,textsize,textsize,i,'#8888ff','#000000','#000000','#000000',textsize/2,false));
+			x += textsize*2;
+		}
+	}
+	
+	draw(ctx){
+		//var textsize = 40;
+		//var y = 0;
+			//y = (index+1)*textsize*1.5;
+			this.receive.forEach((e)=> e.draw(ctx));
+			ctx.save();
+			ctx.font = '' + this.textsize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
+			ctx.fillStyle = '#000000';
+			ctx.strokeStyle = '#000000';
+			ctx.translate(canvas.width/2,y);
+			//if(this.textSlant){
+			//	ctx.rotate(Math.atan(this.height/this.width));
+			//}
+			ctx.fillText(user.userName,0,0);
+			//var nameWidth = ctx.measureText(user.userName).width;
+			//if(this.textOutline != undefined){
+				//ctx.strokeText(this.text, 0, 0);
+			//}
+			ctx.restore();
+			/*var x = (canvas.width/2)-(nameWidth/2)-(textsize/2)-(textsize*7);
+			for (var i = 1; i <= 4; i++){
+				shapes[0].push(new Button(x,y,textsize,textsize,i,'LightSeaGreen','#000000','#000000','#000000',textsize/2,false));
+				x += textsize*2;
+			}
+			var x = (canvas.width/2)+(nameWidth/2)+(textsize/2)+(textsize*1);
+			for (var i = 1; i <= 4; i++){
+				shapes[0].push(new Button(x,y,textsize,textsize,i,'#8888ff','#000000','#000000','#000000',textsize/2,false));
+				x += textsize*2;
+			}*/
+		//});
+	}
+}
 
 class SubmitButton extends Button{
 	constructor(){
@@ -391,6 +450,8 @@ function changeName(userId){
 
 /*Initializing the connection with the server via websockets */
 var myTiles = [];
+
+
 var boardState = [[]];
 var newState = [[]];
 var board = new Board(canvas.width/2, canvas.height/2, boardState.length, boardState[0].length, tileHeight+2*tilePadding, tileWidth+2*tilePadding);
@@ -399,7 +460,7 @@ var shapes = [[],[],[]];
 var userList = [];
 var spectatorColor = "#444444";
 var yourTurnColor = "#0000ff";
-var newTileColor = "#ffff00";
+var newTileColor = "Chocolate";
 var placeholderColor = '#444444';
 var validPlayColor = '#00ff00';
 var invalidPlayColor = '#ff0000';
@@ -409,6 +470,19 @@ var myTurn = false;
 var myUserlistIndex = 0;
 var myUserlistString = "";
 
+for (var i = 0;i < 10;i++){
+	var tile = new Tile(
+		(canvas.width/2) + (tileWidth + 20) * (i-2),
+		canvas.height - (tileHeight + 20),
+		tileWidth,
+		tileHeight,
+		'',
+		newTileColor,'#000000','#000000','#000000',
+		20,true
+	);
+	//tile.drawOutline(placeholderColor); //placeholder outline
+	myTiles.push(tile);
+}
 socket.on("message",function(message){  
 	/*
 		When server sends data to the client it will trigger "message" event on the client side , by 
@@ -466,21 +540,11 @@ socket.on('showBoard',function(data){
 socket.on('tiles', function(tiles){
 	serverTiles = tiles;
 	
-	myTiles = [];
 	for(var i = 0; i < tiles.length; i++){
-		var tile = new Button( 
-			(canvas.width/2) + (tileWidth + 20) * (i-2) ,
-			canvas.height - (tileHeight + 20),
-			tileWidth,
-			tileHeight,
-			allTiles.getProperties(tiles[i]).products.name,
-			newTileColor,'#000000','#000000','#000000',
-			20,true
-		);
-		tile.fillColor = newTileColor;
-		//tile.drawOutline(placeholderColor); //placeholder outline
-		shapes[0].push(tile);//1st layer
-		myTiles.push(tile);
+		if (i < myTiles.length){
+			myTiles[i].updateText(allTiles.getProperties(tiles[i]).products.name);
+		}
+		
 	}
 	
 	//resizeDrawings();
@@ -585,38 +649,8 @@ function draw(){
 	//selected outline
 	if(selected != undefined){
 		//debugger;
-		selected.drawOutline('#0000ff');
+		selected.drawOutline('Chocolate');
 	}
-	
-	var textsize = 40;
-	var y = 0;
-	userList.forEach(function(user, index){
-		y = (index+1)*textsize*1.5;
-		ctx.save();
-		ctx.font = '' + textsize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
-		ctx.fillStyle = '#000000';
-		ctx.strokeStyle = '#000000';
-		ctx.translate(canvas.width/2,y);
-		//if(this.textSlant){
-		//	ctx.rotate(Math.atan(this.height/this.width));
-		//}
-		ctx.fillText(user.userName,0,0);
-		var nameWidth = ctx.measureText(user.userName).width;
-		//if(this.textOutline != undefined){
-			//ctx.strokeText(this.text, 0, 0);
-		//}
-		ctx.restore();
-		var x = (canvas.width/2)-(nameWidth/2)-(textsize/2)-(textsize*7);
-		for (var i = 1; i <= 4; i++){
-			shapes[0].push(new Button(x,y,textsize,textsize,i,'#00ff00','#000000','#000000','#000000',textsize/2,false));
-			x += textsize*2;
-		}
-		var x = (canvas.width/2)+(nameWidth/2)+(textsize/2)+(textsize*1);
-		for (var i = 1; i <= 4; i++){
-			shapes[0].push(new Button(x,y,textsize,textsize,i,'#8888ff','#000000','#000000','#000000',textsize/2,false));
-			x += textsize*2;
-		}
-	});
 	
 	//draw cards
 	for( var i = shapes.length-1; i >= 0; i -= 1){

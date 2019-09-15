@@ -1,9 +1,6 @@
-// button to get new tiles
-// print new points to the chat log or make a grid showing all turn scores and total
-// put chat log behind a button for mobile; only show the last message for a second
 
 //events
-var publicAddress = 'http://alanisboard.ddns.net/';
+var publicAddress = 'http://24.10.166.44/';
 var internalAddress = 'http://localhost:8080/';
 
 window.addEventListener('load', function() {
@@ -333,9 +330,7 @@ class Board {
 
 //socket stuff
 
-
 var socket = io(publicAddress); //try public address //"24.42.206.240" for alabama
-
 var trylocal = 0;
 socket.on('connect_error',function(error){
 	console.log("I got an error!", error);

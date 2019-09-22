@@ -158,14 +158,15 @@ class Tile extends Button{
 		this.highlightColor = color;
 	}
 	
-	updateText(text){
+	updateNumberAndText(cardNumber){
 		/*this.tileData = tileData;
 		if(tileData != undefined){
 			this.text = this.tileData.products.name;
 			this.visible = (this.text.length >= 0);*/
 		//}
-		this.text = text
+		this.text = allTiles.getProperties(cardNumber).products.name;
 		this.visible = (this.text.length >= 0);
+		this.cardNumber = cardNumber;
 	}
 	
 	draw(ctx){
@@ -213,37 +214,105 @@ class Tile extends Button{
 	}
 }*/
 
+class tradeButton extends Tile{
+	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant,userNumber,placeNumber){	
+		super(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant);
+		this.userNumber = userNumber;
+		this.placeNumber = placeNumber;
+	}
+	
+	checkVisibility(){
+		//this.visible = (userList[this.userNumber].trades[this.placeNumber]>0);
+		this.visible = false;
+		console.log(this.userNumber);
+		if ((playerTradeMatrix != undefined) && (playerTradeMatrix.length > this.userNumber)){
+			for (let i = 0;i < playerTradeMatrix[this.userNumber].length;i++){
+				let trade = playerTradeMatrix[this.userNumber][i];
+				console.log(trade,this.placeNumber + 1);
+				this.visible =(trade.length == this.placeNumber + 1);
+			}
+		}
+	}
+	
+	click(){
+		console.log('tradeButton',userNumber,placeNumber);
+	}
+}
+
+class bidButton extends Tile{
+	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant,userNumber,placeNumber){	
+		super(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant);
+		this.userNumber = userNumber;
+		this.placeNumber = placeNumber;
+	}
+	
+	checkVisibility(){
+		this.visible = userList[this.userNumber].bids[this.placeNumber]>0;
+	}
+	
+	click(){
+		console.log('bidButton',this.userNumber,this.placeNumber);
+		let cardSelection = checkCardSelection();
+		if (cardSelection != undefined){
+			if (cardSelection.length == this.placeNumber + 1){
+				socket.emit('attemptTrade',cardSelection,this.userNumber);
+			}
+			else console.log('number of selected cards is not correct');
+		}
+		else console.log('mixed commodity');
+	}
+}
+
 class BiddingInterface{
-	constructor(user,y,textsize){
+	constructor(userNumber,y,textsize){
+		this.user = userList[userNumber];
+		this.y = y;
 		this.receive = [];
 		this.send = [];
-		var nameWidth = ctx.measureText(user.userName).width;
+		var nameWidth = ctx.measureText(userList[userNumber].userName).width;
 		var x = (canvas.width/2)-(nameWidth/2)-(textsize/2)-(textsize*7);
 		for (var i = 1; i <= 4; i++){
-			this.receive.push(new Tile(x,y,textsize,textsize,i,'LightSeaGreen','#000000','#000000','#000000',textsize/2,false));
+			let t = new tradeButton(x,y,textsize,textsize,String(i),'LightSeaGreen','#000000','#000000','#000000',textsize/2,false,userNumber,i-1);
+			this.receive.push(t);
 			x += textsize*2;
 		}
 		var x = (canvas.width/2)+(nameWidth/2)+(textsize/2)+(textsize*1);
 		for (var i = 1; i <= 4; i++){
-			shapes.send.push(new Tile(x,y,textsize,textsize,i,'#8888ff','#000000','#000000','#000000',textsize/2,false));
+			let t = new bidButton(x,y,textsize,textsize,String(i),'#8888ff','#000000','#000000','#000000',textsize/2,false,userNumber,i-1);
+			this.send.push(t);
 			x += textsize*2;
 		}
+		this.updateVisibility();
+	}
+	
+	addToShapes(shapeList){
+		shapeList.push(this);
+		shapeList.push.apply(shapeList,this.receive);
+		shapeList.push.apply(shapeList,this.send);
+	}
+		
+	updateVisibility(){
+		for (let i = 0;i < this.receive.length;i++){
+			this.receive[i].checkVisibility();
+		}
+		this.send.forEach((i)=>i.checkVisibility());
 	}
 	
 	draw(ctx){
 		//var textsize = 40;
 		//var y = 0;
 			//y = (index+1)*textsize*1.5;
-			this.receive.forEach((e)=> e.draw(ctx));
+			//this.receive.forEach((e)=> e.draw(ctx));
+			//this.send.forEach((e)=> e.draw(ctx));
 			ctx.save();
 			ctx.font = '' + this.textsize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
 			ctx.fillStyle = '#000000';
 			ctx.strokeStyle = '#000000';
-			ctx.translate(canvas.width/2,y);
+			ctx.translate(canvas.width/2,this.y);
 			//if(this.textSlant){
 			//	ctx.rotate(Math.atan(this.height/this.width));
 			//}
-			ctx.fillText(user.userName,0,0);
+			ctx.fillText(this.user.userName,0,0);
 			//var nameWidth = ctx.measureText(user.userName).width;
 			//if(this.textOutline != undefined){
 				//ctx.strokeText(this.text, 0, 0);
@@ -263,17 +332,47 @@ class BiddingInterface{
 	}
 }
 
+
 class SubmitButton extends Button{
 	constructor(){
-		super(canvas.width/2, 60, tileWidth*4, tileHeight,"SUBMIT",'#0000ff',undefined,'#ffffff',undefined,tileFontSize,false)
+		super(canvas.width/2, canvas.height-tileHeight-40, canvas.width, tileHeight,"SUBMIT",'#0000ff',undefined,'#ffffff',undefined,tileFontSize,false)
 	}
 	click(){
 		if(this.visible){
-			var sendState = getTileData(newState);	
-			console.log("sending to server"); 
-			socket.emit("newBoardState", sendState);				
+			let sendCards = checkCardSelection();
+			console.log(sendCards);
+			if (sendCards != undefined){
+				socket.emit('submitedBidTiles',sendCards);
+			}
 		}
 	}
+}
+
+//checks all cards correct type and number
+//returns undefined if not correct
+var mismatchedCardsError = {message:'you can not trade more then one commodity'};
+function checkCardSelection(){
+	let type = undefined;
+	let sendCards = [];
+	try{
+		myTiles.forEach((t)=>{
+			//console.log(sendCards);
+		if (t.selected){
+			if (type == undefined){
+				type = t.text;
+				sendCards.push(t.cardNumber);
+			}else if(t.text == type){
+				sendCards.push(t.cardNumber);//TODO:include bull and bear
+			}else{
+				throw mismatchedCardsError;
+			}
+		}
+	});
+	return sendCards;
+	} catch(e){
+		console.error(e.message);
+	}
+	return undefined;
 }
 
 function getTileData( state ){
@@ -429,8 +528,28 @@ socket.on('connect', function(){
 	localStorage.id = socket.id;
 });
 
+socket.on('tradeMatrix',(tradeMatrix)=>{
+	console.log(playerTradeMatrix,'hi');
+	playerTradeMatrix = tradeMatrix;
+	tradingUi.forEach((i)=>{
+		i.updateVisibility();
+	});
+});
+
 socket.on('allTiles', function(inAllTiles){
 	allTiles = inAllTiles;
+});
+
+socket.on('startGame',()=>{
+	console.log(userList);
+	var textsize = 40;
+	var y = textsize;
+	userList.forEach((userName,i)=> {
+		if (userName.ready){
+			tradingUi.push(new BiddingInterface(i,y,textsize));
+		}	
+		y += textsize*1.5;
+	});
 });
 
 function changeName(userId){
@@ -450,8 +569,8 @@ function changeName(userId){
 
 /*Initializing the connection with the server via websockets */
 var myTiles = [];
-
-
+var playerTradeMatrix = [];
+var tradingUi = [];
 var boardState = [[]];
 var newState = [[]];
 var board = new Board(canvas.width/2, canvas.height/2, boardState.length, boardState[0].length, tileHeight+2*tilePadding, tileWidth+2*tilePadding);
@@ -528,6 +647,9 @@ socket.on('userList',function(data){
 	}
 	document.getElementById('userlist').innerHTML = userListString;
 	console.table(data);
+	tradingUi.forEach((i)=>{
+		i.updateVisibility();
+	});
 });
 
 socket.on('showBoard',function(data){
@@ -542,7 +664,7 @@ socket.on('tiles', function(tiles){
 	
 	for(var i = 0; i < tiles.length; i++){
 		if (i < myTiles.length){
-			myTiles[i].updateText(allTiles.getProperties(tiles[i]).products.name);
+			myTiles[i].updateNumberAndText(tiles[i]);
 		}
 		
 	}
@@ -572,6 +694,13 @@ socket.on('boardState', function(recievedBoardState){
 	}
 	
 	updatePlayValidity();
+});
+
+socket.on('gameEnd',()=>{
+	myTiles.forEach((t)=>{
+		delete t;
+	});
+	myTiles = [];
 });
 
 function updatePlayValidity(){
@@ -631,7 +760,7 @@ function draw(){
 	ctx.clearRect(0,0,canvas.width, canvas.height);
 	
 	//var radius = (Math.min(canvas.width, canvas.height-140)/2)-50;
-	
+	shapes[0].push(submitButton);
 	//player tiles
 	for(var i = 0; i < myTiles.length; i++){
 		//if(myTurn){
@@ -645,6 +774,9 @@ function draw(){
 		//}
 		shapes[0].push( myTiles[i] );//1st layer
 	}
+	
+	//tradingUi
+	tradingUi.forEach((ui)=> ui.addToShapes(shapes[0]));
 	
 	//selected outline
 	if(selected != undefined){
@@ -681,9 +813,9 @@ function resizeDrawings(){
 	board.columnThickness = tileWidth + 2*tilePadding;
 	
 	for(var i = 0; i < myTiles.length; i++){
-		myTiles[i].updateSize((canvas.width/2) + (tileWidth + 20) * (i-2) , canvas.height - (tileHeight + 20), tileHeight, tileWidth);
+		myTiles[i].updateSize((canvas.width/2) + (tileWidth + 20) * (i-(myTiles.length/2)+0.5) , canvas.height - (tileHeight + 20), tileHeight, tileWidth);
 	}
-	submitButton.updateSize(canvas.width/2, 60, tileWidth*4, tileHeight);
+	submitButton.updateSize(canvas.width/2, canvas.height-tileHeight-80, canvas.width, tileHeight);
 }
 
 /*

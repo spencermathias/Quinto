@@ -63,9 +63,14 @@ function defaultUserData(){
 		tiles: [],
 		score: 0,
 		statusColor: notReadyColor,
-		ready: false
+		ready: false,
+		trades:[],
+		bids:[],
+		incomingTrades:[]
 	}
 }
+
+var stolenCard = {message:"you're crazy"}
 
 io.sockets.on("connection", function(socket) {
     socket.userData = defaultUserData();
@@ -160,13 +165,50 @@ io.sockets.on("connection", function(socket) {
 				socket.userData.statusColor = notReadyColor;
 				updateBoard(socket, notReadyTitleColor , false);
 			}
-            checkStart();
 			console.log(__line,"" + socket.userData.userName + " is ready: " + ready.ready);
             updateUsers();
+            checkStart();
         }
     });
 	
+	socket.on('submitedBidTiles',function(tileNumbers){
+		//makes sure people actily have those cards
+		if (checkCardOwner(socket,tileNumbers)!= undefined){
+			socket.userData.bids.push(tileNumbers);
+			updateUsers();
+		}
+	});
+	
+	socket.on('attemptTrade',function(tileNumbers, toPlayerNumber){
+		if (checkCardOwner(socket,tileNumbers)!= undefined){
+			fromPlayerNumber = players.indexOf(socket);
+			if (fromPlayerNumber >= 0){
+				playerTradeMatrix[toPlayerNumber][fromPlayerNumber].push(tileNumbers);
+			}
+			pid = players[toPlayerNumber].id;
+			console.log(__line,pid,'toPlayerNumber',toPlayerNumber,players[toPlayerNumber].userData.userName);
+			players[toPlayerNumber].emit('tradeMatrix',playerTradeMatrix[toPlayerNumber]);
+		}
+	});
 });
+
+function checkCardOwner(socket,tileNumbers){
+	try{
+		tileNumbers.forEach((t)=>{
+			console.log(__line,t);
+			if(socket.userData.tiles.indexOf(t)<0){
+				throw stolenCard;
+			}
+		});
+		return tileNumbers;
+	}catch(e){
+		if(e == stolenCard){
+			message(socket,e.message,gameErrorColor);
+			console.warn(e.message);
+		}else throw e;
+	}
+	return undefined;
+}
 
 function message(socket, message, color){
 	var messageObj = {
@@ -198,11 +240,22 @@ function updateUsers(target = io.sockets){
 
 function getUserSendData(client){
 	console.log(__line,"userName:", client.userData.userName, " |ready:", client.userData.ready, "|status:", client.userData.statusColor, "|score:", client.userData.score);
+	let bids = [0,0,0,0];
+	client.userData.bids.forEach((b)=>{
+		bids[b.length-1]++;
+	});
+	let trades = [0,0,0,0];
+	client.userData.trades.forEach((b)=>{
+		trades[b.length-1]++;
+	});
 	return{
 		id: client.id,
 		userName: client.userData.userName,
 		color: client.userData.statusColor,
-		score: client.userData.score
+		score: client.userData.score,
+		ready: client.userData.ready,
+		incomingTrades: client.userData.incomingTrades,
+		bids,trades
 	};
 }
 
@@ -229,6 +282,8 @@ function checkStart() {
     }
 }
 
+var playerTradeMatrix = [];
+
 function gameStart() {
 	console.log(__line,"gameStart");
 	message(io.sockets, "THE GAME HAS STARTED", gameColor);
@@ -246,6 +301,12 @@ function gameStart() {
 		} else {
 			client.userData.statusColor = spectatorColor;
 		}
+	});
+	
+	
+	players.forEach(function(player){
+		player.userData.incomingTrades = new Array(players.length).fill([]);
+		playerTradeMatrix.push(player.userData.incomingTrades);
 	});
 	
 	updateBoard(io.sockets, readyTitleColor, true);
@@ -269,6 +330,7 @@ function gameStart() {
 	//console.log(__line, "allTiles", allTiles);
 
 	//wait for turn plays
+	io.emit('startGame');
 }
 
 function sendBoardState(){
@@ -385,6 +447,8 @@ function gameEnd() {
 		total += players[i].userData.score;
 	}
 	message(io.sockets, "Total score: " + total, gameColor);
+	
+	io.emit('gameEnd');
 	
     players = [];
 	spectators = [];

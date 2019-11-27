@@ -74,7 +74,6 @@ function allowAudio(){
 	}
 }
 
-
 var tileWidth = 40 //* window.devicePixelRatio;
 var tileHeight = 40 //* window.devicePixelRatio;
 var tileFontSize = 30 //* window.devicePixelRatio;
@@ -182,11 +181,18 @@ class Tile extends Button{
 	}
 	
 	click(){
+		if (this.selected){
+			tilesSelected++;
+		}
+		if (!this.selected){
+			tilesSelected--;
+		}
 		console.log(this);
 		this.selected = !this.selected;
 	}
 }
 
+var tilesSelected = 0;
 /*class MoveTile extends Tile	{
 	constructor(tileData, x,y,width,height,fontSize){
 		super(tileData, x,y,width,height,fontSize);
@@ -235,7 +241,8 @@ class tradeButton extends Tile{
 	}
 	
 	click(){
-		console.log('tradeButton',userNumber,placeNumber);
+		console.log('tradeButton',this.userNumber,this.placeNumber);
+		socket.emit('tradeReady',this.userNumber,this.placeNumber);
 	}
 }
 
@@ -338,16 +345,56 @@ class SubmitButton extends Button{
 		super(canvas.width/2, canvas.height-tileHeight-40, canvas.width, tileHeight,"SUBMIT",'#0000ff',undefined,'#ffffff',undefined,tileFontSize,false)
 	}
 	click(){
-		if(this.visible){
-			let sendCards = checkCardSelection();
-			console.log(sendCards);
-			if (sendCards != undefined){
-				socket.emit('submitedBidTiles',sendCards);
+		if (tilesSelected == 0){
+			socket.emit('cheakEndOfRound',userName,tiles,score);
+		}
+		else{
+			if(this.visible){
+				let sendCards = checkCardSelection();
+				console.log(sendCards);
+				if (sendCards != undefined){
+					socket.emit('submitedBidTiles',sendCards);
+				}
 			}
 		}
 	}
 }
 
+class endRoundButton extends Button{
+	constructor(){
+		super(canvas.width/2, canvas.height-tileHeight-80, canvas.width, tileHeight,"SUBMIT",'#0000ff',undefined,'#ffffff',undefined,tileFontSize,false,)
+	}
+	draw(ctx){
+		if(this.visible){
+			ctx.save();
+			ctx.fillStyle = this.fillColor;
+			ctx.strokeStyle = this.outlineColor;
+			roundRect(ctx, this.clickArea.minX, this.clickArea.minY, this.width, this.height, this.width/8, this.fillColor != undefined, this.outlineColor != undefined);
+
+			//draw number
+			ctx.font = '' + this.fontSize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
+			ctx.fillStyle = this.textColor;
+			ctx.strokeStyle = this.textOutlineColor;
+			ctx.translate(this.x, this.y);
+			if(this.textSlant){
+				ctx.rotate(Math.atan(this.height/this.width));
+			}
+			if(this.textColor != undefined){
+				ctx.fillText(this.text,0,0);
+			}
+			if(this.textOutline != undefined){
+				ctx.strokeText(this.text, 0, 0);
+			}
+			ctx.restore();
+		}
+	}
+	click(){
+		
+	}
+}
+var clickToEndRound = new endRoundButton();
+
+//clickToEndRound.x,clickToEndRound.y,clickToEndRound.width,clickToEndRound.hight
 //checks all cards correct type and number
 //returns undefined if not correct
 var mismatchedCardsError = {message:'you can not trade more then one commodity'};
@@ -490,7 +537,6 @@ class Board {
 }
 
 //socket stuff
-
 
 var socket = io(publicAddress); //try public address //"24.42.206.240" for alabama
 
@@ -793,6 +839,7 @@ function draw(){
 	}
 	setTimeout(draw, 100); //repeat
 }
+
 draw();
 
 function resizeCanvas(){

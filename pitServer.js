@@ -21,7 +21,7 @@ var server = http.createServer(app).listen(socket,"0.0.0.0",511,function(){conso
 io = io.listen(server);
 /*initializing the websockets communication , server instance has to be sent as the argument */
 
-var minPlayers = 3;
+var minPlayers = 2;
 var maxPlayers = 20;
 
 var allClients = [];
@@ -52,7 +52,7 @@ var readyTitleColor = "#00ff00";
 var notReadyTitleColor = "#ff0000";
 var spectatorColor = "#444444";
 var notYourTurnColor = "#ffffff";
-var yourTurnColor = "#0000ff";
+//var yourTurnColor = "#0000ff";
 
 
 console.log("Server Started!");
@@ -181,6 +181,7 @@ io.sockets.on("connection", function(socket) {
 	
 	socket.on('attemptTrade',function(tileNumbers, toPlayerNumber){
 		if (checkCardOwner(socket,tileNumbers)!= undefined){
+			console.log(__line,playerTradeMatrix);
 			fromPlayerNumber = players.indexOf(socket);
 			if (fromPlayerNumber >= 0){
 				playerTradeMatrix[toPlayerNumber][fromPlayerNumber].push(tileNumbers);
@@ -188,16 +189,74 @@ io.sockets.on("connection", function(socket) {
 			pid = players[toPlayerNumber].id;
 			console.log(__line,pid,'toPlayerNumber',toPlayerNumber,players[toPlayerNumber].userData.userName);
 			players[toPlayerNumber].emit('tradeMatrix',playerTradeMatrix[toPlayerNumber]);
+			console.log(__line,playerTradeMatrix);
+		}
+	});
+	socket.on('tradeReady',function(userNumber,placeNumber){
+		let fromPlayerNumber = players.indexOf(socket);
+		let trade = playerTradeMatrix[fromPlayerNumber][userNumber].pop();
+		console.log(__line,'trade fromPlayerNumber',trade,fromPlayerNumber);
+		let length = trade.length - 1;
+		console.log(__line,'length',length);
+		//console.log(__line,'players[userNumber]',players[userNumber]);
+		console.log(__line,'socket.userData.bids',socket.userData.bids);
+		let tradeResopnseNum = -1;
+		for (let r = 0;r < socket.userData.bids.length;r++){
+			if (socket.userData.bids[r].length == trade.length){
+				tradeResopnseNum = r;
+				break;
+			}
+		}
+		if (tradeResopnseNum >= 0){
+			let tradeResopnse = socket.userData.bids.splice(tradeResopnseNum,1);
+			let playerFrom = players[userNumber];
+			for (var x = 0;x < trade.length;x++){
+				let tileNumber = playerFrom.userData.tiles.indexOf(trade[x]);
+				let temp = playerFrom.userData.tiles[tileNumber];
+				playerFrom.userData.tiles[tileNumber] = tradeResopnse[x];
+				tileNumber = socket.userData.tiles.indexOf(tradeResopnse[x]);
+				socket.userData.tiles[tileNumber] = temp;
+			}
+			updateUsers();
+			sendTilesToPlayer(socket);
+			sendTilesToPlayer(playerFrom);
+			playerFrom.emit('tradeMatrix',playerTradeMatrix[playerFrom]);
+			socket.emit('tradeMatrix',playerTradeMatrix[fromPlayerNumber]);
+		}
+	});
+	socket.on('cheakEndOfRound',function(userName,tiles,score){
+		cheakWin(tiles);
+		if(cheakWin(tilesToCheak) != -1){
+			newRound();
 		}
 	});
 });
+
+
+
+function newRound(userNameWon,oldScore){
+	message(8080,userData.userNameWon + 'won that round',gameColor);
+	userData.score = oldScore + cardDes.products[cheakWin(tilesToCheak).value];
+	if (userData.score >= 500){
+		actilyGameEnd(userNameWon)
+	}else
+	dealAllTiles(allPlayers,pile);
+	sendTilesToAllPlayers(players);
+	message(io.sockets, "A NEW ROUND HAS STARTED", gameColor);
+	incomingTrades = [];
+	updateUsers();
+}
+
+function cheakWin(tilesToCheak){
+	cardDes.products.name.indexOf(tilesToCheak.name);
+}
 
 function checkCardOwner(socket,tileNumbers){
 	try{
 		tileNumbers.forEach((t)=>{
 			console.log(__line,t);
 			if(socket.userData.tiles.indexOf(t)<0){
-				throw stolenCard;
+				throw stolenCard;             
 			}
 		});
 		return tileNumbers;
@@ -305,7 +364,8 @@ function gameStart() {
 	
 	
 	players.forEach(function(player){
-		player.userData.incomingTrades = new Array(players.length).fill([]);
+		player.userData.incomingTrades = [];
+		players.forEach(function (p){player.userData.incomingTrades.push(new Array())});
 		playerTradeMatrix.push(player.userData.incomingTrades);
 	});
 	
@@ -440,9 +500,9 @@ function gameEnd() {
 	message(io.sockets, "Scores: ", gameColor);
 	let total = 0;
 	for( var i = 0; i < players.length; i += 1){
-		for(var tile = 0; tile < players[i].userData.tiles.length; tile++){
+		/*for(var tile = 0; tile < players[i].userData.tiles.length; tile++){
 			players[i].userData.score -= players[i].userData.tiles[tile].number;
-		}
+		}*/
 		message(io.sockets, players[i].userData.userName + ": " + players[i].userData.score + "\n", gameColor);
 		total += players[i].userData.score;
 	}
@@ -450,9 +510,11 @@ function gameEnd() {
 	
 	io.emit('gameEnd');
 	
+	playerTradeMatrix = [];
     players = [];
 	spectators = [];
     allClients.forEach(function(client) {
+		
         client.userData.ready = false;
         client.userData.statusColor = notReadyColor;
     });
@@ -460,6 +522,35 @@ function gameEnd() {
     updateUsers();
 }
 
+function actilyGameEnd(winner) {
+    console.log(__line,"gameEnd");
+    updateBoard(io.sockets, notReadyTitleColor, false);
+
+	message(io.sockets, "THE GAME HAS ENDED", gameColor);
+	message(io.sockets, "Scores: ", gameColor);
+	let total = 0;
+	for( var i = 0; i < players.length; i += 1){
+		for(var tile = 0; tile < players[i].userData.tiles.length; tile++){
+			players[i].userData.score -= players[i].userData.tiles[tile].number;
+		}
+		message(io.sockets, players[i].userData.userName + ": " + players[i].userData.score + "\n", gameColor);
+		total += players[i].userData.score;
+	}
+	message(io.sockets, "Total score: " + total, gameColor);
+	message(io.sockets,'The Winner Is:' + winner,gameColor)
+	io.emit('gameEnd');
+	
+	playerTradeMatrix = [];
+    players = [];
+	spectators = [];
+    allClients.forEach(function(client) {
+		
+        client.userData.ready = false;
+        client.userData.statusColor = notReadyColor;
+    });
+    gameStatus = gameMode.LOBBY;
+    updateUsers();
+}
 
 //captures stack? to find and return line number
 Object.defineProperty(global, '__stack', {

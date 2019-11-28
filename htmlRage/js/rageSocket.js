@@ -1,7 +1,7 @@
 //socket stuff
 var localAddress = "localhost";
 
-var socket = io("localhost"); //try public address
+var socket = io("alanisboard.ddns.net"); //try public address
 var trylocal = 0;
 socket.on('connect_error',function(error){
 	console.log("I got an error!", error);
@@ -24,9 +24,36 @@ socket.on('reconnect', function(attempt){
 socket.on('connect', function(){
 	//get userName
 	console.log("Connection successful!")
-	var username = prompt('Enter username: ');
-	socket.emit('newUser', username);
+	//var username = prompt('Enter username: ');
+	//socket.emit('newUser', username);
+	
+	if(localStorage.userName === undefined){
+		changeName(socket.id);
+	} else {
+		socket.emit('userName', localStorage.userName);
+	}
+	
+	if(localStorage.id !== undefined){
+		socket.emit('oldId', localStorage.id);
+	}
+	localStorage.id = socket.id;
 });
+
+
+function changeName(userId){
+	if(userId == socket.id){
+		var userName = null;
+		do{
+			userName = prompt('Enter username: ');
+			//console.log(userName);
+			if ((userName == null || userName == "") && localStorage.userName !== undefined){
+				userName = localStorage.userName;
+			}
+		} while (userName === null);
+		localStorage.userName = userName;
+		socket.emit("userName", localStorage.userName);
+	}
+}
 
 /*Initializing the connection with the server via websockets */
 var myCards = [];

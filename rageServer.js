@@ -25,6 +25,8 @@ var numberOfRounds = 10;
 
 var allClients = [];
 var players = [];
+var spectators = [];
+
 var currentRound = numberOfRounds;
 var currentTurn = 0;
 var firstPlayer;
@@ -82,10 +84,8 @@ var gotBidBonus = 10;
 
 console.log("Server Started!");
 
-io.sockets.on("connection", function(socket) {
-    /*Associating the callback function to be executed when client visits the page and
-      websocket connection is made */
-    socket.userData = {
+function defaultUserData(){
+	return {
 		userName: "Unknown",
 		cards: [],
 		cardSelected: noneCard,
@@ -94,19 +94,29 @@ io.sockets.on("connection", function(socket) {
 		score: 0,
 		handScore: 0
 	};
+}
+
+
+io.sockets.on("connection", function(socket) {
+    /*Associating the callback function to be executed when client visits the page and
+      websocket connection is made */
+	socket.userData = defaultUserData();
 
     allClients.push(socket);
     if (gameStatus === gameMode.LOBBY) {
         socket.userData.statusColor = notReadyColor;
     } else {
+		spectators.push(socket);
         socket.userData.statusColor = spectatorColor;
         updateBoard(socket, notReadyTitleColor, true);
+		updateUsers();
     }
 
     var message_to_client = {
         data:"Connection established!",
         color: serverColor
     };
+	
     socket.emit("message",JSON.stringify(message_to_client));
     socket.emit("trumpCard", trumpCard);
 
@@ -115,10 +125,15 @@ io.sockets.on("connection", function(socket) {
 
     socket.on("disconnect",function() {
 		message( io.sockets, "" + socket.userData.userName + " has left.", serverColor);
+		message( io.sockets, "Type 'kick' to kick disconnected players", serverColor);
         console.log(__line,"disconnected: " + socket.userData.userName + ": " + socket.id);
         var i = allClients.indexOf(socket);
-        allClients.splice(i, 1);
-        i = players.indexOf(socket);
+        if(i >= 0){ allClients.splice(i, 1); }
+		var i = spectators.indexOf(socket);
+        if(i >= 0){ spectators.splice(i, 1); }
+        //players only removed if kicked
+		updateUsers();
+		/*i = players.indexOf(socket);
         players.splice(i, 1);
 		if( players.length < 2) {
 			gameEnd();
@@ -126,8 +141,30 @@ io.sockets.on("connection", function(socket) {
 			checkForAllBids();
 			checkForAllCards();
 			updateUsers();
-		}
+		}*/
     });
+	
+	socket.on('oldId', function(id){ 
+		console.log(__line, "oldID:", id);
+		for(var i = 0; i < players.length; i++){
+			if(players[i].id == id){
+				console.log(__line, "found old player!", players[i].userData.username, socket.userData.userName);
+				var j = spectators.indexOf(socket);
+				if(j >= 0){spectators.splice(j, 1)};
+				socket.userData = players[i].userData;
+				players[i] = socket;
+				socket.emit("cards", socket.userData.cards); //update player cards
+				if(gameStatus == gameMode.BID){
+					socket.emit("requestBid");
+				} else {
+					socket.emit("allBidsIn");
+				}
+				updateTurnColor();
+			} else {
+				console.log(__line, "new player");
+			}
+		}
+	});
 
     socket.on("message",function(data) {
         /*This event is triggered at the server side when client sends the data using socket.send() method */
@@ -144,7 +181,20 @@ io.sockets.on("connection", function(socket) {
         } else if(data.message === "start") {
             console.log(__line,"forced start");
             gameStart();
-        }
+        } else if(data.message.toLowerCase() === "kick"){
+			console.log(__line, "clearing players");
+			for(var i = players.length-1; i >= 0; i--){
+				if(players[i].disconnected){
+					message( io.sockets, "" + players[i].userData.userName + " has been kicked!", chatColor);
+					players.splice(i, 1);
+				}
+			}
+			if( players.length < minPlayers) {
+				gameEnd();
+			} else {
+				updateTurnColor();
+			}
+		}
         /*Sending the Acknowledgement back to the client , this will trigger "message" event on the clients side*/
     });
 
@@ -190,7 +240,7 @@ io.sockets.on("connection", function(socket) {
         }
     }); */
 
-    socket.on("newUser", function(userName) {
+    socket.on("userName", function(userName) {  //TODO Update new user to userName
         socket.userData.userName = userName;
         socket.userData.ready = false;
         console.log(__line,"added new user: " + socket.userData.userName);
@@ -205,7 +255,7 @@ io.sockets.on("connection", function(socket) {
 				socket.userData.statusColor = readyColor;
 				updateBoard(socket, readyTitleColor , false);
 			} else {
-				var i = players.indexOf(socket);
+				//var i = players.indexOf(socket);
 				socket.userData.statusColor = notReadyColor;
 				updateBoard(socket, notReadyTitleColor , false);
 			}

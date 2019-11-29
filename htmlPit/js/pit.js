@@ -163,6 +163,7 @@ class Tile extends Button{
 			this.text = this.tileData.products.name;
 			this.visible = (this.text.length >= 0);*/
 		//}
+		console.log(this.cardNumber,'new',cardNumber);
 		this.text = allTiles.getProperties(cardNumber).products.name;
 		this.visible = (this.text.length >= 0);
 		this.cardNumber = cardNumber;
@@ -346,7 +347,7 @@ class SubmitButton extends Button{
 	}
 	click(){
 		if (tilesSelected == 0){
-			socket.emit('cheakEndOfRound',userName,tiles,score);
+			socket.emit('cheakEndOfRound');
 		}
 		else{
 			if(this.visible){

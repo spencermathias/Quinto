@@ -3,7 +3,7 @@
 // put chat log behind a button for mobile; only show the last message for a second
 
 //events
-var publicAddress = 'http://localhost:8080/';
+var publicAddress = 'http://107.77.208.70:8080/';
 var internalAddress = 'http://localhost:8080/';
 
 window.addEventListener('load', function() {
@@ -74,7 +74,6 @@ function allowAudio(){
 	}
 }
 
-
 var tileWidth = 40 //* window.devicePixelRatio;
 var tileHeight = 40 //* window.devicePixelRatio;
 var tileFontSize = 30 //* window.devicePixelRatio;
@@ -140,43 +139,61 @@ class Button {
 	}
 } 
 
-/*class Tile extends Button{
-	constructor(tileData, x,y,width,height,fontSize){
-		var text = -1;
-		if(tileData != undefined){
-			text = tileData.number
-		}
-		super(x,y,width,height,text,defaultTileColor,'#000000','#000000',undefined,fontSize,false);
-		this.tileData = tileData;
-		this.visible = (text >= 0);
-		this.highlightColor = "";
+class Tile extends Button{
+	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant){
+		/*var text = -1;
+		if(tileData.name != undefined){
+			text = tileData.products.name
+		}*/
+		//super(x,y,width,height,text,defaultTileColor,'SteelBlue','Red',undefined,fontSize,true);
+		super(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant)
+		//this.tileData = tileData;
+		this.visible = (text.length >= 0);
+		this.highlightColor = "Magenta";
+		this.selected = false;
 	}
 	
 	drawOutline(color){
 		this.highlightColor = color;
 	}
 	
-	updateData(tileData){
-		this.tileData = tileData;
+	updateNumberAndText(cardNumber){
+		/*this.tileData = tileData;
 		if(tileData != undefined){
-			this.text = this.tileData.number
-			this.visible = (this.tileData.number >= 0);
-		}
+			this.text = this.tileData.products.name;
+			this.visible = (this.text.length >= 0);*/
+		//}
+		console.log(this.cardNumber,'new',cardNumber);
+		this.text = allTiles.getProperties(cardNumber).products.name;
+		this.visible = (this.text.length >= 0);
+		this.cardNumber = cardNumber;
 	}
 	
 	draw(ctx){
-		if(this.highlightColor != ""){
-			//console.log(this.highlightColor);
+		if(this.selected != false){
+			
 			ctx.save();
 			ctx.fillStyle = this.highlightColor;
 			roundRect(ctx, this.x-(this.width/2 + tilePadding), this.y-(this.height/2 + tilePadding), this.width+2*tilePadding, this.height+2*tilePadding, this.width/8,true, false);
 			ctx.restore();
-			this.highlightColor = "";
+			//this.highlightColor = "";
 		}
 		super.draw(ctx);
 	}
-}*/
+	
+	click(){
+		if (this.selected){
+			tilesSelected++;
+		}
+		if (!this.selected){
+			tilesSelected--;
+		}
+		console.log(this);
+		this.selected = !this.selected;
+	}
+}
 
+var tilesSelected = 0;
 /*class MoveTile extends Tile	{
 	constructor(tileData, x,y,width,height,fontSize){
 		super(tileData, x,y,width,height,fontSize);
@@ -204,17 +221,206 @@ class Button {
 	}
 }*/
 
-class SubmitButton extends Button{
-	constructor(){
-		super(canvas.width/2, 60, tileWidth*4, tileHeight,"SUBMIT",'#0000ff',undefined,'#ffffff',undefined,tileFontSize,false)
+class tradeButton extends Tile{
+	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant,userNumber,placeNumber){	
+		super(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant);
+		this.userNumber = userNumber;
+		this.placeNumber = placeNumber;
 	}
-	click(){
-		if(this.visible){
-			var sendState = getTileData(newState);	
-			console.log("sending to server"); 
-			socket.emit("newBoardState", sendState);				
+	
+	checkVisibility(){
+		//this.visible = (userList[this.userNumber].trades[this.placeNumber]>0);
+		this.visible = false;
+		console.log(this.userNumber);
+		if ((playerTradeMatrix != undefined) && (playerTradeMatrix.length > this.userNumber)){
+			for (let i = 0;i < playerTradeMatrix[this.userNumber].length;i++){
+				let trade = playerTradeMatrix[this.userNumber][i];
+				console.log(trade,this.placeNumber + 1);
+				this.visible =(trade.length == this.placeNumber + 1);
+			}
 		}
 	}
+	
+	click(){
+		console.log('tradeButton',this.userNumber,this.placeNumber);
+		socket.emit('tradeReady',this.userNumber,this.placeNumber);
+	}
+}
+
+class bidButton extends Tile{
+	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant,userNumber,placeNumber){	
+		super(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant);
+		this.userNumber = userNumber;
+		this.placeNumber = placeNumber;
+	}
+	
+	checkVisibility(){
+		this.visible = userList[this.userNumber].bids[this.placeNumber]>0;
+	}
+	
+	click(){
+		console.log('bidButton',this.userNumber,this.placeNumber);
+		let cardSelection = checkCardSelection();
+		if (cardSelection != undefined){
+			if (cardSelection.length == this.placeNumber + 1){
+				socket.emit('attemptTrade',cardSelection,this.userNumber);
+			}
+			else console.log('number of selected cards is not correct');
+		}
+		else console.log('mixed commodity');
+	}
+}
+
+class BiddingInterface{
+	constructor(userNumber,y,textsize){
+		this.user = userList[userNumber];
+		this.y = y;
+		this.receive = [];
+		this.send = [];
+		var nameWidth = ctx.measureText(userList[userNumber].userName).width;
+		var x = (canvas.width/2)-(nameWidth/2)-(textsize/2)-(textsize*7);
+		for (var i = 1; i <= 4; i++){
+			let t = new tradeButton(x,y,textsize,textsize,String(i),'LightSeaGreen','#000000','#000000','#000000',textsize/2,false,userNumber,i-1);
+			this.receive.push(t);
+			x += textsize*2;
+		}
+		var x = (canvas.width/2)+(nameWidth/2)+(textsize/2)+(textsize*1);
+		for (var i = 1; i <= 4; i++){
+			let t = new bidButton(x,y,textsize,textsize,String(i),'#8888ff','#000000','#000000','#000000',textsize/2,false,userNumber,i-1);
+			this.send.push(t);
+			x += textsize*2;
+		}
+		this.updateVisibility();
+	}
+	
+	addToShapes(shapeList){
+		shapeList.push(this);
+		shapeList.push.apply(shapeList,this.receive);
+		shapeList.push.apply(shapeList,this.send);
+	}
+		
+	updateVisibility(){
+		for (let i = 0;i < this.receive.length;i++){
+			this.receive[i].checkVisibility();
+		}
+		this.send.forEach((i)=>i.checkVisibility());
+	}
+	
+	draw(ctx){
+		//var textsize = 40;
+		//var y = 0;
+			//y = (index+1)*textsize*1.5;
+			//this.receive.forEach((e)=> e.draw(ctx));
+			//this.send.forEach((e)=> e.draw(ctx));
+			ctx.save();
+			ctx.font = '' + this.textsize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
+			ctx.fillStyle = '#000000';
+			ctx.strokeStyle = '#000000';
+			ctx.translate(canvas.width/2,this.y);
+			//if(this.textSlant){
+			//	ctx.rotate(Math.atan(this.height/this.width));
+			//}
+			ctx.fillText(this.user.userName,0,0);
+			//var nameWidth = ctx.measureText(user.userName).width;
+			//if(this.textOutline != undefined){
+				//ctx.strokeText(this.text, 0, 0);
+			//}
+			ctx.restore();
+			/*var x = (canvas.width/2)-(nameWidth/2)-(textsize/2)-(textsize*7);
+			for (var i = 1; i <= 4; i++){
+				shapes[0].push(new Button(x,y,textsize,textsize,i,'LightSeaGreen','#000000','#000000','#000000',textsize/2,false));
+				x += textsize*2;
+			}
+			var x = (canvas.width/2)+(nameWidth/2)+(textsize/2)+(textsize*1);
+			for (var i = 1; i <= 4; i++){
+				shapes[0].push(new Button(x,y,textsize,textsize,i,'#8888ff','#000000','#000000','#000000',textsize/2,false));
+				x += textsize*2;
+			}*/
+		//});
+	}
+}
+
+
+class SubmitButton extends Button{
+	constructor(){
+		super(canvas.width/2, canvas.height-tileHeight-40, canvas.width, tileHeight,"SUBMIT",'#0000ff',undefined,'#ffffff',undefined,tileFontSize,false)
+	}
+	click(){
+		if (tilesSelected == 0){
+			socket.emit('cheakEndOfRound');
+		}
+		else{
+			if(this.visible){
+				let sendCards = checkCardSelection();
+				console.log(sendCards);
+				if (sendCards != undefined){
+					socket.emit('submitedBidTiles',sendCards);
+				}
+			}
+		}
+	}
+}
+
+class endRoundButton extends Button{
+	constructor(){
+		super(canvas.width/2, canvas.height-tileHeight-80, canvas.width, tileHeight,"SUBMIT",'#0000ff',undefined,'#ffffff',undefined,tileFontSize,false,)
+	}
+	draw(ctx){
+		if(this.visible){
+			ctx.save();
+			ctx.fillStyle = this.fillColor;
+			ctx.strokeStyle = this.outlineColor;
+			roundRect(ctx, this.clickArea.minX, this.clickArea.minY, this.width, this.height, this.width/8, this.fillColor != undefined, this.outlineColor != undefined);
+
+			//draw number
+			ctx.font = '' + this.fontSize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
+			ctx.fillStyle = this.textColor;
+			ctx.strokeStyle = this.textOutlineColor;
+			ctx.translate(this.x, this.y);
+			if(this.textSlant){
+				ctx.rotate(Math.atan(this.height/this.width));
+			}
+			if(this.textColor != undefined){
+				ctx.fillText(this.text,0,0);
+			}
+			if(this.textOutline != undefined){
+				ctx.strokeText(this.text, 0, 0);
+			}
+			ctx.restore();
+		}
+	}
+	click(){
+		
+	}
+}
+var clickToEndRound = new endRoundButton();
+
+//clickToEndRound.x,clickToEndRound.y,clickToEndRound.width,clickToEndRound.hight
+//checks all cards correct type and number
+//returns undefined if not correct
+var mismatchedCardsError = {message:'you can not trade more then one commodity'};
+function checkCardSelection(){
+	let type = undefined;
+	let sendCards = [];
+	try{
+		myTiles.forEach((t)=>{
+			//console.log(sendCards);
+		if (t.selected){
+			if (type == undefined){
+				type = t.text;
+				sendCards.push(t.cardNumber);
+			}else if(t.text == type){
+				sendCards.push(t.cardNumber);//TODO:include bull and bear
+			}else{
+				throw mismatchedCardsError;
+			}
+		}
+	});
+	return sendCards;
+	} catch(e){
+		console.error(e.message);
+	}
+	return undefined;
 }
 
 function getTileData( state ){
@@ -333,7 +539,6 @@ class Board {
 
 //socket stuff
 
-
 var socket = io(publicAddress); //try public address //"24.42.206.240" for alabama
 
 var trylocal = 0;
@@ -370,8 +575,28 @@ socket.on('connect', function(){
 	localStorage.id = socket.id;
 });
 
+socket.on('tradeMatrix',(tradeMatrix)=>{
+	console.log(playerTradeMatrix,'hi');
+	playerTradeMatrix = tradeMatrix;
+	tradingUi.forEach((i)=>{
+		i.updateVisibility();
+	});
+});
+
 socket.on('allTiles', function(inAllTiles){
 	allTiles = inAllTiles;
+});
+
+socket.on('startGame',()=>{
+	console.log(userList);
+	var textsize = 40;
+	var y = textsize;
+	userList.forEach((userName,i)=> {
+		if (userName.ready){
+			tradingUi.push(new BiddingInterface(i,y,textsize));
+		}	
+		y += textsize*1.5;
+	});
 });
 
 function changeName(userId){
@@ -391,6 +616,8 @@ function changeName(userId){
 
 /*Initializing the connection with the server via websockets */
 var myTiles = [];
+var playerTradeMatrix = [];
+var tradingUi = [];
 var boardState = [[]];
 var newState = [[]];
 var board = new Board(canvas.width/2, canvas.height/2, boardState.length, boardState[0].length, tileHeight+2*tilePadding, tileWidth+2*tilePadding);
@@ -399,7 +626,7 @@ var shapes = [[],[],[]];
 var userList = [];
 var spectatorColor = "#444444";
 var yourTurnColor = "#0000ff";
-var newTileColor = "#ffff00";
+var newTileColor = "Chocolate";
 var placeholderColor = '#444444';
 var validPlayColor = '#00ff00';
 var invalidPlayColor = '#ff0000';
@@ -409,6 +636,19 @@ var myTurn = false;
 var myUserlistIndex = 0;
 var myUserlistString = "";
 
+for (var i = 0;i < 10;i++){
+	var tile = new Tile(
+		(canvas.width/2) + (tileWidth + 20) * (i-2),
+		canvas.height - (tileHeight + 20),
+		tileWidth,
+		tileHeight,
+		'',
+		newTileColor,'#000000','#000000','#000000',
+		20,true
+	);
+	//tile.drawOutline(placeholderColor); //placeholder outline
+	myTiles.push(tile);
+}
 socket.on("message",function(message){  
 	/*
 		When server sends data to the client it will trigger "message" event on the client side , by 
@@ -454,6 +694,9 @@ socket.on('userList',function(data){
 	}
 	document.getElementById('userlist').innerHTML = userListString;
 	console.table(data);
+	tradingUi.forEach((i)=>{
+		i.updateVisibility();
+	});
 });
 
 socket.on('showBoard',function(data){
@@ -466,21 +709,11 @@ socket.on('showBoard',function(data){
 socket.on('tiles', function(tiles){
 	serverTiles = tiles;
 	
-	myTiles = [];
 	for(var i = 0; i < tiles.length; i++){
-		var tile = new Button( 
-			(canvas.width/2) + (tileWidth + 20) * (i-2) ,
-			canvas.height - (tileHeight + 20),
-			tileWidth,
-			tileHeight,
-			allTiles.getProperties(tiles[i]).products.name,
-			newTileColor,'#000000','#000000','#000000',
-			20,true
-		);
-		tile.fillColor = newTileColor;
-		//tile.drawOutline(placeholderColor); //placeholder outline
-		shapes[0].push(tile);//1st layer
-		myTiles.push(tile);
+		if (i < myTiles.length){
+			myTiles[i].updateNumberAndText(tiles[i]);
+		}
+		
 	}
 	
 	//resizeDrawings();
@@ -508,6 +741,13 @@ socket.on('boardState', function(recievedBoardState){
 	}
 	
 	updatePlayValidity();
+});
+
+socket.on('gameEnd',()=>{
+	myTiles.forEach((t)=>{
+		delete t;
+	});
+	myTiles = [];
 });
 
 function updatePlayValidity(){
@@ -567,7 +807,7 @@ function draw(){
 	ctx.clearRect(0,0,canvas.width, canvas.height);
 	
 	//var radius = (Math.min(canvas.width, canvas.height-140)/2)-50;
-	
+	shapes[0].push(submitButton);
 	//player tiles
 	for(var i = 0; i < myTiles.length; i++){
 		//if(myTurn){
@@ -582,41 +822,14 @@ function draw(){
 		shapes[0].push( myTiles[i] );//1st layer
 	}
 	
+	//tradingUi
+	tradingUi.forEach((ui)=> ui.addToShapes(shapes[0]));
+	
 	//selected outline
 	if(selected != undefined){
 		//debugger;
-		selected.drawOutline('#0000ff');
+		selected.drawOutline('Chocolate');
 	}
-	
-	var textsize = 40;
-	var y = 0;
-	userList.forEach(function(user, index){
-		y = (index+1)*textsize*1.5;
-		ctx.save();
-		ctx.font = '' + textsize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
-		ctx.fillStyle = '#000000';
-		ctx.strokeStyle = '#000000';
-		ctx.translate(canvas.width/2,y);
-		//if(this.textSlant){
-		//	ctx.rotate(Math.atan(this.height/this.width));
-		//}
-		ctx.fillText(user.userName,0,0);
-		var nameWidth = ctx.measureText(user.userName).width;
-		//if(this.textOutline != undefined){
-			//ctx.strokeText(this.text, 0, 0);
-		//}
-		ctx.restore();
-		var x = (canvas.width/2)-(nameWidth/2)-(textsize/2)-(textsize*7);
-		for (var i = 1; i <= 4; i++){
-			shapes[0].push(new Button(x,y,textsize,textsize,i,'#00ff00','#000000','#000000','#000000',textsize/2,false));
-			x += textsize*2;
-		}
-		var x = (canvas.width/2)+(nameWidth/2)+(textsize/2)+(textsize*1);
-		for (var i = 1; i <= 4; i++){
-			shapes[0].push(new Button(x,y,textsize,textsize,i,'#8888ff','#000000','#000000','#000000',textsize/2,false));
-			x += textsize*2;
-		}
-	});
 	
 	//draw cards
 	for( var i = shapes.length-1; i >= 0; i -= 1){
@@ -627,6 +840,7 @@ function draw(){
 	}
 	setTimeout(draw, 100); //repeat
 }
+
 draw();
 
 function resizeCanvas(){
@@ -647,9 +861,9 @@ function resizeDrawings(){
 	board.columnThickness = tileWidth + 2*tilePadding;
 	
 	for(var i = 0; i < myTiles.length; i++){
-		myTiles[i].updateSize((canvas.width/2) + (tileWidth + 20) * (i-2) , canvas.height - (tileHeight + 20), tileHeight, tileWidth);
+		myTiles[i].updateSize((canvas.width/2) + (tileWidth + 20) * (i-(myTiles.length/2)+0.5) , canvas.height - (tileHeight + 20), tileHeight, tileWidth);
 	}
-	submitButton.updateSize(canvas.width/2, 60, tileWidth*4, tileHeight);
+	submitButton.updateSize(canvas.width/2, canvas.height-tileHeight-80, canvas.width, tileHeight);
 }
 
 /*

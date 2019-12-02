@@ -2,9 +2,15 @@
 // print new points to the chat log or make a grid showing all turn scores and total
 // put chat log behind a button for mobile; only show the last message for a second
 
+
+//TODO fix display when rejoining
+//TODO: indicate what cards are up for trade 
+// TODO: show that you attempted a trade with some one
+// TODO: fix chat chat stretch
+
 //events
-var publicAddress = 'http://alanisboard.ddns.net:8080/';
-var internalAddress = 'http://localhost:8080/';
+var publicAddress = 'http://alanisboard.ddns.net/';
+var internalAddress = 'http://192.168.1.8:8080/';
 
 window.addEventListener('load', function() {
 	var lastTouch = {x:0, y:0};

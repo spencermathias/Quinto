@@ -196,39 +196,42 @@ io.sockets.on("connection", function(socket) {
 		let fromPlayerNumber = players.indexOf(socket);
 		let trade = playerTradeMatrix[fromPlayerNumber][userNumber].pop();
 		console.log(__line,'trade fromPlayerNumber',trade,fromPlayerNumber);
-		let length = trade.length - 1;
-		//console.log(__line,'length',length);
-		//console.log(__line,'players[userNumber]',players[userNumber]);
-		//console.log(__line,'socket.userData.bids',socket.userData.bids);
-		let tradeResopnseNum = -1;
-		for (let r = 0;r < socket.userData.bids.length;r++){
-			if (socket.userData.bids[r].length == trade.length){
-				tradeResopnseNum = r;
-				break;
+		if(trade != undefined){
+			let length = trade.length - 1;
+			//console.log(__line,'length',length);
+			//console.log(__line,'players[userNumber]',players[userNumber]);
+			//console.log(__line,'socket.userData.bids',socket.userData.bids);
+			let tradeResopnseNum = -1;
+			for (let r = 0;r < socket.userData.bids.length;r++){
+				if (socket.userData.bids[r].length == trade.length){
+					tradeResopnseNum = r;
+					break;
+				}
 			}
-		}
-		if (tradeResopnseNum >= 0){
-			let tradeResopnse = socket.userData.bids.splice(tradeResopnseNum,1)[0];
-			console.log(__line,'trade',trade);
-			console.log(__line,'tradeResopnse',tradeResopnse);
-			let playerFrom = players[userNumber];
-			for (var x = 0;x < tradeResopnse.length;x++){
-				//get tile from player from
-				let tileNumber = playerFrom.userData.tiles.indexOf(trade[x]);
-				let temp = playerFrom.userData.tiles[tileNumber];
-				playerFrom.userData.tiles[tileNumber] = tradeResopnse[x];
-				tileNumber = socket.userData.tiles.indexOf(tradeResopnse[x]);
-				socket.userData.tiles[tileNumber] = temp;
+			if (tradeResopnseNum >= 0){
+				let tradeResopnse = socket.userData.bids.splice(tradeResopnseNum,1)[0];
+				console.log(__line,'trade',trade);
+				console.log(__line,'tradeResopnse',tradeResopnse);
+				let playerFrom = players[userNumber];
+				for (var x = 0;x < tradeResopnse.length;x++){
+					//get tile from player from
+					let tileNumber = playerFrom.userData.tiles.indexOf(trade[x]);
+					let temp = playerFrom.userData.tiles[tileNumber];
+					playerFrom.userData.tiles[tileNumber] = tradeResopnse[x];
+					tileNumber = socket.userData.tiles.indexOf(tradeResopnse[x]);
+					socket.userData.tiles[tileNumber] = temp;
+				}
+				updateUsers();
+				sendTilesToPlayer(socket);
+				sendTilesToPlayer(playerFrom);
+				playerFrom.emit('tradeMatrix',playerTradeMatrix[playerFrom]);
+				socket.emit('tradeMatrix',playerTradeMatrix[fromPlayerNumber]);
+				message(playerFrom,'Traded with '+socket.userData.userName,gameColor);
+				message(socket,'Traded with '+ playerFrom.userData.userName,gameColor);
 			}
-			updateUsers();
-			sendTilesToPlayer(socket);
-			sendTilesToPlayer(playerFrom);
-			playerFrom.emit('tradeMatrix',playerTradeMatrix[playerFrom]);
-			socket.emit('tradeMatrix',playerTradeMatrix[fromPlayerNumber]);
-			message(playerFrom,'Traded with '+socket.userData.userName,gameColor);
-			message(socket,'Traded with '+ playerFrom.userData.userName,gameColor);
 		}
 	});
+	
 	socket.on('cheakEndOfRound',function(){
 		var add = cheakWin(socket.userData.tiles);
 		console.log(__line,'check end of round',socket.userData.tiles);
@@ -240,19 +243,20 @@ io.sockets.on("connection", function(socket) {
 });
 
 
-
 function newRound(socket,add){
 	console.log(__line,'user check',socket !== undefined);
 	if (socket !== undefined){ 
 		message(io.sockets,socket.userData.userName + ' won that round',gameColor);
 		socket.userData.score += add;
 		updateUsers();
-		if (socket.userData.score >= 500){
-			return actilyGameEnd(socket.userData.name);
+		if (socket.userData.score >= 50){
+			return actilyGameEnd(socket);
 		}
 	}
 	playerTradeMatrix = [];
 	message(io.sockets, "A NEW ROUND HAS STARTED", gameColor);
+	
+	//clear trades and bids
 	players.forEach(function(player){
 		player.userData.trades = [];
 		player.userData.tiles = [];
@@ -260,6 +264,8 @@ function newRound(socket,add){
 		player.userData.incomingTrades = [];
 		players.forEach(function (p){player.userData.incomingTrades.push(new Array())});
 		playerTradeMatrix.push(player.userData.incomingTrades);
+		
+		player.emit('tradeMatrix',player.userData.incomingTrades);
 	});
 	
 	updateBoard(io.sockets, readyTitleColor, true);
@@ -277,6 +283,7 @@ function newRound(socket,add){
 	sendTilesToAllPlayers(players);
 	//console.log(__line, "cards", tiles);
 	//console.log(__line, "allTiles", allTiles);
+	updateUsers();
 }
 
 function cheakWin(tilesToCheak){
@@ -563,7 +570,7 @@ function actilyGameEnd(winner) {
 		total += players[i].userData.score;
 	}
 	message(io.sockets, "Total score: " + total, gameColor);
-	message(io.sockets,'The Winner Is:' + winner.userData.userName,gameColor)
+	message(io.sockets,'The winner is ' + winner.userData.userName +'!',gameColor)
 	io.emit('gameEnd');
 	
     players = [];

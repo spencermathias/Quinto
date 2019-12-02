@@ -86,7 +86,16 @@ socket.on('userList',function(data){
 	var userListString = '';
 	userList = [];
 	for( var i = 0; i < data.length; i++ ){
-		userListString = userListString + '<div style="color: ' + data[i].color + ';">' + data[i].userName + '</div>';
+		
+		var header = 'div id="userListDiv'+ i + '"';
+		var click = 'onclick="changeName(' + "'" + data[i].id + "'" + ')"';
+		var color = ' style="color: ' + data[i].color + ';"'
+		var string = '' + data[i].userName;
+		var ender = '</div>';
+		
+		userListString = userListString + '<' + header + click + color + '>' + string + ender;
+		
+		//userListString = userListString + '<div style="color: ' + data[i].color + ';">' + data[i].userName + '</div>';
 		//console.log(data[i].userName + ' bid: ' + data[i].bid);
 		if(data[i].color != spectatorColor){
 			userList.push(data[i]);

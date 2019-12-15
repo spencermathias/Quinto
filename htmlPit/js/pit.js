@@ -139,6 +139,24 @@ class Button {
 	}
 } 
 
+/*class leftSideBar{
+	constructor(x,y,width,hight,text,fillColor){
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.hight = hight;
+		this.text = text;
+		this.fillColor = fillColor;
+	}
+	draw(ctx){
+		ctx.fillRect(this.x,this.y,this.width,this.hight,);
+		ctx.fillStyle = this.fillColor;
+		ctx.font = 'White' + 30 + 'px Arimo'
+		ctx.fillText(this.text,0,0)
+	}
+}*/
+//var sideBar = new leftSideBar(canvas.width/15,canvas.hight/2,canvas.width/15,canvas.hight,shared.cardDes.products.name + shared.cardDes.products.value);
+
 class Tile extends Button{
 	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant){
 		/*var text = -1;

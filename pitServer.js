@@ -262,6 +262,7 @@ function newRound(socket,add){
 		playerTradeMatrix.push(player.userData.incomingTrades);
 	});
 	
+	
 	updateBoard(io.sockets, readyTitleColor, true);
 	console.log(__line,'p',players.length);
 	shared.cardDes.products = shared.cardDes.products.slice(0,players.length);
@@ -277,6 +278,10 @@ function newRound(socket,add){
 	sendTilesToAllPlayers(players);
 	//console.log(__line, "cards", tiles);
 	//console.log(__line, "allTiles", allTiles);
+}
+
+function countdown(){
+	
 }
 
 function cheakWin(tilesToCheak){

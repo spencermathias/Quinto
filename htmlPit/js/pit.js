@@ -2,9 +2,15 @@
 // print new points to the chat log or make a grid showing all turn scores and total
 // put chat log behind a button for mobile; only show the last message for a second
 
+
+//TODO fix display when rejoining
+//TODO: indicate what cards are up for trade 
+// TODO: show that you attempted a trade with some one
+// TODO: fix chat chat stretch
+
 //events
-var publicAddress = 'http://107.77.208.70:8080/';
-var internalAddress = 'http://localhost:8080/';
+var publicAddress = 'http://alanisboard.ddns.net/';
+var internalAddress = 'http://192.168.1.8:8080/';
 
 window.addEventListener('load', function() {
 	var lastTouch = {x:0, y:0};
@@ -138,24 +144,6 @@ class Button {
 		console.log("This button has not been overloaded yet!");
 	}
 } 
-
-/*class leftSideBar{
-	constructor(x,y,width,hight,text,fillColor){
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.hight = hight;
-		this.text = text;
-		this.fillColor = fillColor;
-	}
-	draw(ctx){
-		ctx.fillRect(this.x,this.y,this.width,this.hight,);
-		ctx.fillStyle = this.fillColor;
-		ctx.font = 'White' + 30 + 'px Arimo'
-		ctx.fillText(this.text,0,0)
-	}
-}*/
-//var sideBar = new leftSideBar(canvas.width/15,canvas.hight/2,canvas.width/15,canvas.hight,shared.cardDes.products.name + shared.cardDes.products.value);
 
 class Tile extends Button{
 	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant){

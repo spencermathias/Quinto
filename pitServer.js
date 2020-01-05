@@ -30,6 +30,7 @@ var allClients = [];
 var players = [];
 var spectators = [];
 
+var winScore = 250;
 
 var gameMode = {
     LOBBY: 0,
@@ -392,7 +393,7 @@ function newRound(socket,add){
 		message(io.sockets,socket.userData.userName + ' won that round',gameColor);
 		socket.userData.score += add;
 		updateUsers();
-		if (socket.userData.score >= 50){
+		if (socket.userData.score >= winScore){
 			return actilyGameEnd(socket);
 		}
 	}

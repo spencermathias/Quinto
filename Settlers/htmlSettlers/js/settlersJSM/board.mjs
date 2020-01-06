@@ -1,5 +1,6 @@
 import hex from '../settlersJSM/hex.mjs';
 import Road from '../settlersJSM/road.mjs';
+import Town from '../settlersJSM/town.mjs';
 import * as THREE from '../build/three.module.js';
 
 
@@ -55,6 +56,7 @@ class boardNode{ // hexagons
         this.edgeIndexList = edgeIndexList;
         this.vertexIndexList = vertexIndexList;
         this.hexData = hexData; //game properties of the node
+        this.visited = false;
     }
 
     // Connects the edges and verticies of two nodes together
@@ -126,6 +128,7 @@ class boardEdge{ //roads
         this.nodeIndexList = nodeIndexList;
         //connects two vertexes together
         this.vertexIndexList = vertexIndexList;
+        this.visited = false;
     }
 
 
@@ -149,6 +152,7 @@ class boardVertex{ //cities
         this.vertexIndex = vertexIndex;
         this.nodeIndexList = nodeIndexList;
         this.edgeIndexList = [undefined,undefined,undefined];
+        this.visited = false;
     }
 
     addNode(nodeIndex){
@@ -175,91 +179,6 @@ class boardVertex{ //cities
         throw new Error("Vertex full of edge connections");
     }
 }
-
-/*
-function upleft(index){
-    switch(index){
-        case 0,1,2,3,7:
-            return undefined;
-            break;
-        case 4,5,6, 16,17,18:
-            return index-4;
-            break;
-        case 8,9,10,11,12,13,14,15:
-            return index-5;
-            break;
-        default: return undefined;
-    }
-}
-
-function upright(index){
-    switch(index){
-        case 0,1,2,6,11:
-            return undefined;
-            break;
-        case 3,4,5,16,17,18:
-            return index-3;
-            break;
-        case 7,8,9,10,12,13,14,15:
-            return index-4;
-            break;
-        default: return undefined;
-    }
-}
-
-function right(index){
-    switch(index){
-        case 2,6,11,15,18:
-            return undefined;
-            break;
-        case 0,1,3,4,5,7,8,9,10,12,13,14,16,17:
-            return index+1;
-            break;
-        default: return undefined;
-    }
-}
-
-function downright(index){
-    switch(index){
-        case 11,15,16,17,18:
-            return undefined;
-            break;
-        case 0,1,2,12,13,14:
-            return index+4;
-            break;
-        case 3,4,5,6,7,8,9,10:
-            return index+5;
-            break;
-        default: return undefined;
-    }
-}
-
-function downleft(index){
-    switch(index){
-        case 7,12,16,17,18:
-            return undefined;
-            break;
-        case 0,1,2,13,14,15:
-            return index+3;
-            break;
-        case 3,4,5,6,8,9,10,11:
-            return index+4;
-            break;
-        default: return undefined;
-    }
-}
-
-function left(index){
-    switch(index){
-        case 0,3,7,12,16:
-            return undefined;
-            break;
-        case 1,2,4,5,6,8,9,10,11,13,14,15,17,18:
-            return index-1;
-            break;
-        default: return undefined;
-    }
-}*/
 
 class Board extends THREE.Group {
     constructor(){
@@ -293,14 +212,15 @@ class Board extends THREE.Group {
 
         // make board edge
         for(let i=0;i<18;i++){
-            nodeDataList.push({type: WATER, value: valueArray[i]});
+            nodeDataList.push({type: WATER, value: 18+i});
         }
 
-        debugger;
-        let currentNum = 0;
+        //make connections in a circle
+        //debugger;
+        let currentNum = -1;
         let nodeQueue = [0];
         let currentNode = undefined;
-        let nextNode = new boardNode(nodeDataList[currentNum], nodeList.length)
+        let nextNode = new boardNode(nodeDataList[0], nodeList.length)
         nodeList.push(nextNode);
         
         while(currentNum < 18){
@@ -352,93 +272,67 @@ class Board extends THREE.Group {
                 }
             }
         }
-        console.log(nodeList);
+        //console.log(nodeList);
+        //console.log(edgeList);
 
+        //make and place tiles
+        this.makeAndPlaceHex(nodeList[0],0,0);
+    }
 
-        /*
-        //build in a circle for now
-        let indexQueue = [0];
-        let indexStack = [];
-        let nodeConnectionsList = [];
-        for(let i = 18; i >= 0; i--){
-            indexStack.push(i);
-            nodeConnectionsList.push([undefined,undefined,undefined, undefined, undefined, undefined]);
-        }
+    makeAndPlaceHex(node,x,y){
+        if(node.visited==true) return;
+        node.visited = true;
+        
+        //make object
+        let h = new hex(node.hexData.type, node.hexData.value);
+        h.adjustXY(x,y);
+        this.add(h);
 
-        while(indexStack.length > 0){
-            let currentIndex = indexQueue.pop();
-            for(let i = 0; i < 19; i++) { //each edge
-                if(indexStack.length>0){
+        //debugger;
+        //console.log("t",node, node.edgeIndexList);
 
+        for(let i = 0; i<6; i++){ //for every edge
+            //get connected node
+
+            let x2 = x;
+            let y2 = y;
+            
+            switch(i){
+                case 0: x2 -= 0.5; y2 += 1; break;
+                case 1: x2 += 0.5; y2 += 1; break;
+                case 2: x2 += 1; break;
+                case 3: x2 += 0.5; y2 -= 1; break;
+                case 4: x2 -= 0.5; y2 -= 1; break;
+                case 5: x2 -= 1; break;
+            }
+            let currentRotation = ((i+1)%6)*Math.PI/3;
+
+            let currentVertexIndex = node.vertexIndexList[i];
+            if(currentVertexIndex!= undefined){
+                let currentVertex = vertexList[currentVertexIndex];
+                if(currentVertex.visited == false){
+                    //console.log(currentVertex)
+                    currentVertex.visited = true;
+                    let t = new Town(currentRotation);
+                    t.adjustXY(x,y,i);
+                    this.add(t);
                 }
             }
-        }
-
-        for(let i = 0; i < 19; i++){
-            let val = valueArray[valueindex];
-            if(TileArray[i] == DESERT){val = 0;}
-            nodeList.push(new boardNode({type:TileArray[i], number: val, visited: false}, nodeList.length-1));
-        }
-        //mix all tiles, the first hex will be in the center
-        mixArray(TileArray);
-        */
-       
-        
-        /*let nodeQueue = [nodeList[0]];
-        
-        while(nodeQueue.length > 0){
-            let currentNode = nodeQueue.pop();
-            for(let i = 0; i < 19; i++){ //all sides
-                if(currentNode){}
-            }
-        }*/
-
-
-        let y = -2;
-        let x = -1;
-
-        let valueindex = 0;
-        for(let i = 0; i < 19; i++){
-            let val = valueArray[i];
-            //if(TileArray[i] == DESERT){val = 0} else{ valueindex++;}
-            let h = new hex(TileArray[i], val);
-
-            //h.position.x = (2*Math.random()-1)*spawnArea.x;
-            //h.position.z = (2*Math.random()-1)*spawnArea.y;
             
-            
-            h.adjustXY(x,y);
-            this.add(h);
+            let currentEdgeIndex = node.edgeIndexList[i];
+            if(currentEdgeIndex != undefined){
+                let currentEdge = edgeList[currentEdgeIndex];
+                if(currentEdge.visited == false){
+                    currentEdge.visited=true;
+                    let r = new Road(currentRotation);
+                    r.adjustXY(x,y,i);
+                    this.add(r);
+                }
 
-            x++;
-            switch(i){
-                case 2:
-                    x = -1.5;
-                    y++;
-                break;
-                case 6:
-                    x = -2;
-                    y++;
-                break;
-                case 11:
-                    x = -1.5;
-                    y++;
-                break;
-                case 15:
-                    x = -1;
-                    y++;
-                break;
-                default:
+                let currentNode = nodeList[currentEdge.getOtherNode(node.nodeIndex)];
+                this.makeAndPlaceHex(currentNode,x2,y2);
             }
         }
-
-        //h.position.y = .1;
-
-        let r = new Road();
-        //r.adjustXY()
-        r.position.y = .01;
-        r.position.x = -.075
-        this.add(r);
     }
 }
 

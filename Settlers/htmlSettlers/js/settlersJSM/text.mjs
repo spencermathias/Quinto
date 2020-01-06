@@ -28,7 +28,10 @@ class PlaneText extends THREE.Object3D{
         texture.needsUpdate = true;
         var material = new THREE.MeshBasicMaterial({ map: texture, transparent:true });
         let geometry = new THREE.PlaneGeometry( canvas.width/scale, canvas.height/scale, 1,1 );
+        geometry.rotateX(-Math.PI/2);
+        
         let mesh = new THREE.Mesh(geometry, material);
+        
         this.add(mesh);
         //this.mesh = new THREE.Mesh( geometry, material );
     }

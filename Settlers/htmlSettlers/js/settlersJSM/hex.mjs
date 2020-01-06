@@ -25,6 +25,7 @@ class hexGeometry extends THREE.ExtrudeBufferGeometry{
         };
 
         super(shape, extrudeSettings);
+        this.rotateX(-Math.PI/2);
     }
 }
 const radius = .075;
@@ -38,6 +39,7 @@ const WHEAT= "wheat";
 const WOOL= "wool";
 const ROCK= "rock";
 const DESERT= "desert";
+const WATER = "water";
 
 const TileColors = {
     0x880000: 3, //brick
@@ -55,6 +57,7 @@ const wheatMaterial = new THREE.MeshPhongMaterial({color:0xffff00});
 const rockMaterial = new THREE.MeshPhongMaterial({color:0x666666});
 const sheepMaterial = new THREE.MeshPhongMaterial({color:0x90ee90});
 const desertMaterial = new THREE.MeshPhongMaterial({color:0x777700});
+const waterMaterial = new THREE.MeshPhongMaterial({color:0x0820ff});
 
 class hex extends THREE.Object3D {
     constructor(resource="desert", number=0){
@@ -66,19 +69,21 @@ class hex extends THREE.Object3D {
             case WHEAT: material = wheatMaterial; break;
             case WOOL: material = sheepMaterial; break;
             case ROCK: material = rockMaterial; break;
+            case WATER: material = waterMaterial; break;
             default: material = desertMaterial;
         }
         this.add(new THREE.Mesh(geometry, material))
         this.userData.resource = resource;
         this.userData.number = number;
-        this.rotation.x = - Math.PI / 2; //+y is up
+        //this.rotation.x = - Math.PI / 2; //+y is up
         
         //draw number
         if(number > 0){
             let color = 'black';
             if(number == 6 || number == 8) color = 'red';
             let t = new PlaneText(""+number, radius/2, color);
-            t.position.z = depth*1.01;
+            
+            t.position.y = depth*1.05;
             this.add(t);
         }
     }

@@ -5,7 +5,15 @@ import { GUI } from './jsm/libs/dat.gui.module.js';
 
 import { OrbitControls } from './jsm/controls/OrbitControls.js';
 
-import Board from './settlersJSM/board.mjs';
+import Game from  './game.mjs';
+
+
+import socket from './clientSocket.mjs'
+
+import {setSyncedSocket,syncedRegisterHandler,synced} from './syncedObject.mjs';
+setSyncedSocket(socket);
+syncedRegisterHandler(socket);
+window.synced = synced;
 
 /*
  * Cloth Simulation using a relaxed constraints solver
@@ -386,6 +394,12 @@ function togglePins() {
 }
 */
 
+
+
+
+let game = new Game();
+socket.game = game;
+
 var container, stats;
 var camera, scene, renderer;
 
@@ -538,9 +552,7 @@ function init() {
 	mesh.castShadow = true;
 	scene.add( mesh );
 	*/
-
-	scene.add(new Board());
-	console.log(scene);
+	
 	// renderer
 
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -575,6 +587,10 @@ function init() {
 	gui.add( params, 'enableWind' );
 	gui.add( params, 'showBall' );
 	//gui.add( params, 'tooglePins' );
+
+	game.init(socket, scene, camera);
+	//scene.add(game.board);
+	console.log(scene);
 
 }
 

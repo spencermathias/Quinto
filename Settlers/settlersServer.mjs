@@ -3,9 +3,16 @@
 //TODO: send current board state to new connections
 //subtract remaining tiles
 
-var express = require("express");
+/*var express = require("express");
 var http = require("http");
-var io = require("socket.io");
+var io = require("socket.io");*/
+
+import express from 'express';
+import http from 'http';
+import ios from 'socket.io';
+
+import {setSyncedSocket,syncedRegisterHandler,synced} from './htmlSettlers/js/syncedObject.mjs';
+//setSyncedSocket(io);
 //var shared = require('./htmlSettlers/js/shared.js'); //get shared functions
 
 //const spawn = require("child_process").spawn;
@@ -17,15 +24,18 @@ app.use(express.static("./htmlSettlers")); //working directory
 var socket = 8080;
 //var server = http.createServer(app).listen(8080); //Server listens on the port 8124
 var server = http.createServer(app).listen(socket,"0.0.0.0",511,function(){console.log(__line,"Server connected to socket: "+socket);});//Server listens on the port 8124
-io = io.listen(server);
+let io = ios.listen(server);
+setSyncedSocket(io);
 /*initializing the websockets communication , server instance has to be sent as the argument */
 
-var minPlayers = 2;
-var maxPlayers = 20;
 
 var allClients = [];
 var players = [];
 var spectators = [];
+
+/*
+var minPlayers = 2;
+var maxPlayers = 20;
 
 var currentTurn = 0;
 
@@ -48,7 +58,7 @@ var tileDesc = {
 
 var tiles = [];
 var allTiles = [];
-
+*/
 var gameMode = {
     LOBBY: 0,
     PLAY: 1,
@@ -74,6 +84,46 @@ var spectatorColor = "#444444";
 var notYourTurnColor = "#ffffff";
 var yourTurnColor = "#0000ff";
 
+/* accepts parameters
+ * h  Object = {h:x, s:y, v:z}
+ * OR 
+ * h, s, v
+ * 0<h<1
+*/
+function HSVtoRGB(h, s, v) {
+    var r, g, b, i, f, p, q, t;
+    if (arguments.length === 1) {
+        s = h.s, v = h.v, h = h.h;
+    }
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+    p = v * (1 - s);
+    q = v * (1 - f * s);
+    t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+	
+	return (Math.floor(r*256)<<16) + (Math.floor(g*256)<<8) + Math.floor(b*256);
+	/*return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+    };*/
+}
+
+let oldh = 0;
+const hInc = 67;
+
+function newColor(){
+	oldh = (oldh + hInc)%257;
+	return HSVtoRGB(oldh/257,.8,.8);
+}
 
 console.log("Server Started!");
 
@@ -82,40 +132,48 @@ function defaultUserData(){
 		userName: "Unknown",
 		tiles: [],
 		score: 0,
-		statusColor: notReadyColor,
+		userColor: newColor(),
 		ready: false,
 		skippedTurn: false
 	}
 }
 
-io.sockets.on("connection", function(socket) {
+
+io.on("connection", function(socket) {
+	syncedRegisterHandler(socket);
+
     socket.userData = defaultUserData();
 
     allClients.push(socket);
     if (gameStatus === gameMode.LOBBY) {
-        socket.userData.statusColor = notReadyColor;
+        //socket.userData.statusColor = notReadyColor;
     } else {
 		spectators.push(socket);
-        socket.userData.statusColor = spectatorColor;
-        updateBoard(socket, notReadyTitleColor, true);
-		updateUsers(socket);
-		socket.emit("allTiles", allTiles);
-		socket.emit('boardState', boardState);
+        //socket.userData.statusColor = spectatorColor;
+        //updateBoard(socket, notReadyTitleColor, true);
+		//updateUsers(socket);
+		//socket.emit("allTiles", allTiles);
+		//socket.emit('boardState', boardState);
     }
 
-	message(socket, "Connection established!", serverColor)
+	//message(socket, "Connection established!", serverColor)
 
     console.log(__line, "Socket.io Connection with client " + socket.id +" established");
+	
+	//send how many players there are, and which id the new player is
+	socket.emit('allPlayers',{number: allClients.length, id: allClients.length-1});
+	socket.broadcast.emit('newPlayer');
 
     socket.on("disconnect",function() {
-		message( io.sockets, "" + socket.userData.userName + " has left.", serverColor);
-		message( io.sockets, "Type 'kick' to kick disconnected players", serverColor);
-        console.log(__line,"disconnected: " + socket.userData.userName + ": " + socket.id);
+		//message( io.sockets, "" + socket.userData.userName + " has left.", serverColor);
+		//message( io.sockets, "Type 'kick' to kick disconnected players", serverColor);
+		
+		console.log(__line,"disconnected: " + socket.userData.userName + ": " + socket.id);
         var i = allClients.indexOf(socket);
         if(i >= 0){ allClients.splice(i, 1); }
 		var i = spectators.indexOf(socket);
         if(i >= 0){ spectators.splice(i, 1); }
-		updateUsers();
+		//updateUsers();
         //players are only removed if kicked
     });
 	
@@ -128,20 +186,25 @@ io.sockets.on("connection", function(socket) {
 				if(j >= 0){spectators.splice(j, 1)};
 				socket.userData = players[i].userData;
 				players[i] = socket;
-				socket.emit('tiles', socket.userData.tiles);
-				updateTurnColor();
+				//socket.emit('tiles', socket.userData.tiles);
+				//updateTurnColor();
 			} else {
 				console.log(__line, "new player");
 			}
 		}
 	});
 
-    socket.on("message",function(data) {
-        /*This event is triggered at the server side when client sends the data using socket.send() method */
+	//send position data to everyone
+	socket.on('playerPosition', function(pos){
+		socket.broadcast.emit('playerPosition', pos);
+	});
+
+    /*socket.on("message",function(data) {
+        //This event is triggered at the server side when client sends the data using socket.send() method 
         data = JSON.parse(data);
 
         console.log(__line, "data: ", data);
-        /*Printing the data */
+        //Printing the data 
 		message( socket, "You: " + data.message, chatColor);
 		message( socket.broadcast, "" + socket.userData.userName + ": " + data.message, chatColor);
 
@@ -165,7 +228,7 @@ io.sockets.on("connection", function(socket) {
 				updateTurnColor();
 			}
 		}
-        /*Sending the Acknowledgement back to the client , this will trigger "message" event on the clients side*/
+        // Sending the Acknowledgement back to the client , this will trigger "message" event on the clients side
     });
 
     socket.on("userName", function(userName) {
@@ -225,9 +288,10 @@ io.sockets.on("connection", function(socket) {
 		} else {
 			message(socket, "Game not in mode to recieve play", gameErrorColor);
 		}
-	});
+	});*/
 });
 
+/*
 function nextTurn(){
 	if(checkEnd()){
 		gameEnd();
@@ -431,20 +495,7 @@ function chooseRandomTile() {
 		return returnTile;
 	}
 }
-/*
-function returnTileToDeck(player, tile, tileDeck) {
-	var tileIndex = player.userData.tiles.indexOf(tile);
-	if (tileIndex >= 0){
-		player.userData.tiles.splice(tileIndex, 1);
-		tileDeck.push(tile);
-		player.emit("tiles", player.userData.tiles);
-		return true;
-	} else{
-		console.log(__line, "tile not found!")
-		player.emit("tiles", player.userData.tiles);
-		return false;
-	}
-}*/
+
 
 function playersHaveTiles(){ //to check end conditions
 	var i;
@@ -508,6 +559,10 @@ function updateTurnColor(){
 	}
 }
 
+*/
+
+let __line = '';
+/*
 //captures stack? to find and return line number
 Object.defineProperty(global, '__stack', {
   get: function(){
@@ -542,3 +597,4 @@ stdin.addListener("data", function(d) {
 		console.log("invalid command");
 	}
   });
+  */

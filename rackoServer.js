@@ -190,8 +190,8 @@ io.sockets.on("connection", function(socket) {
 		}
 	});
 	
-	socket.on('takeFaceUpClicked'function (){
-		socket.on('switchCards'function () {
+	//socket.on('takeFaceUpClicked'function (){
+		//socket.on('switchCards'function () {
 			
 	/*socket.on('tradeReady',function(userNumber,placeNumber){
 		let fromPlayerNumber = players.indexOf(socket);
@@ -241,8 +241,8 @@ io.sockets.on("connection", function(socket) {
 			newRound(socket,add);
 		}
 	});*/
-	cardsWaitingTrade = [];
-	socket.on('switchCards', function (number){
+	//cardsWaitingTrade = [];
+	//socket.on('switchCards', function (number){
 		
 });
 

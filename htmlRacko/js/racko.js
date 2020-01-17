@@ -700,8 +700,8 @@ var myUserlistString = "";
 
 for (var i = 0;i < 10;i++){
 	var tile = new Tile(
-		(canvas.width/2) + (tileWidth + 20) * (i-2),
-		canvas.height - (tileHeight + 20),
+		canvas.width/2,
+		((canvas.height)/2)/i,
 		tileWidth,
 		tileHeight,
 		'',

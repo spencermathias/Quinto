@@ -246,6 +246,12 @@ io.sockets.on("connection", function(socket) {
 		
 });
 
+function shuffleAndDeel(fromArayy,toArayy){
+	x = Math.floor(Math.random * fromArayy.length);
+	toArayy.push(x);
+	y = fromArayy.indexOf(x);
+	fromArayy.splice(y,1)
+}
 
 function newRound(socket,add){
 	console.log(__line,'user check',socket !== undefined);
@@ -463,11 +469,10 @@ function dealTiles(player, carddeck, amountToBeDelt) {
 
 //deals a single tile
 function dealSingleTile(player,carddeck){
-	if(carddeck.length > 0){
-		tileToGive = chooseRandomTile(carddeck);
-		//tileToGive.owner = player.id;
-		player.userData.tiles.push(tileToGive);
-	}
+	x = Math.floor(Math.random * fromArayy.length);
+	toArayy.push(x);
+	y = fromArayy.indexOf(x);
+	fromArayy.splice(y,1)
 }
 
 //removes a element from deck array and gives it to the players user data array

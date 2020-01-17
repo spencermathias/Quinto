@@ -77,11 +77,11 @@ function allowAudio(){
 var tileWidth = 40 //* window.devicePixelRatio;
 var tileHeight = 40 //* window.devicePixelRatio;
 var tileFontSize = 30 //* window.devicePixelRatio;
-var tilePadding = 5;
 var allTiles = new Deck(shared.cardDes);
 var serverTiles = [];
 var selected = undefined;
-var scoreIsValid = false;	
+var scoreIsValid = false;
+var lastSubmitPushed = undefined;
 
 var canvas = document.getElementById("gameBoard");
 var ctx = canvas.getContext("2d");
@@ -148,15 +148,13 @@ class leftSidePannal{
 		this.fillColor = fillColor;
 		this.text = text;
 	}
-	draw(){
+	draw(ctx)
 		ctx.fillRect(this.x,this.y,this.width,this,hight);
 		ctx.fillStyle = this.fillColor;
 		ctx.font = '' + 30 + 'px Arimo'
 		ctx.fillText(this.text,0,0)
 	}
 }
-
-var onlyLeftPannal = new leftSidePannal(canvas.width/15,canvas.hight/2,canvas.width/15,canvas.hight,'#b3b3b3',shared.cardDes.products.name + shared.cardDes.products.value);
 
 class confirmButtonTakeTop extends Button{
 	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant){
@@ -171,8 +169,37 @@ class confirmButtonTakeTop extends Button{
 		ctx.fillStyle = this.highlightColor;
 		ctx.restore();
 		this.visible = false;
+		
+		ctx.font = '' + this.fontSize + 'px Arimo'
+		ctx.fillText(this.text,0,0)
 	}
+	
 	click(){
+		lastSubmitPushed = takeTop;
+		
+	}
+}
+
+class confirmButtonTakeFaceDown extends Button{
+	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant){
+		super(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant)
+		this.visible = (text.length >= 0);
+		this.highlightColor = "Magenta";
+		this.selected = false;
+	}
+	draw(ctx){
+		ctx.save();
+		roundRect(ctx,this.x,this.y,this.width,this.hight,50,this.fillColor,this.outlineColor);
+		ctx.fillStyle = this.highlightColor;
+		ctx.restore();
+		this.visible = false;
+		
+		ctx.font = '' + this.fontSize + 'px Arimo'
+		ctx.fillText(this.text,0,0)
+	}
+	
+	click(){
+		lastSubmitPushed = takeTop;
 		
 	}
 }
@@ -711,6 +738,7 @@ for (var i = 0;i < 10;i++){
 	//tile.drawOutline(placeholderColor); //placeholder outline
 	myTiles.push(tile);
 }
+var confirmButtonTakeTop = new confirmButtonTakeTop((canvas.width/20) * 59,(canvas.hight/20) * 19,(canvas.width/10),(canvas.hight/20),'Take The Top Card','Red',undefined,'Black',undefined,30,false);
 socket.on("message",function(message){  
 	/*
 		When server sends data to the client it will trigger "message" event on the client side , by 
@@ -913,9 +941,8 @@ function resizeCanvas(){
 }
 
 function resizeDrawings(){
-	tileWidth = 40; //* window.devicePixelRatio;
-	tileHeight = 40; //* window.devicePixelRatio;
-	tilePadding = tileWidth/20;
+	tileWidth = 100; //* window.devicePixelRatio;
+	tileHeight = 50; //* window.devicePixelRatio;
 	tileFontSize = 30; //* window.devicePixelRatio;
 	board.x = canvas.width/2;
 	board.y = canvas.height/2;

@@ -4,15 +4,17 @@ import Player from './settlersJSM/player.mjs';
 class Game{
     constructor(){
         this.board = new Board();
-        this.Players=[];
+        this.PlayersById={};
 
         this.socket = undefined;
         this.scene = undefined;
         this.controls = undefined;
+        this.camera = undefined;
 
         //this persons 3d object
-        this.myObj = undefined; // {obj: socket.game.Players[i], id: i};
-        setInterval(this.sendPos.bind(this),100);
+        //socket.game.Players[i]
+        this.myObj = new Player();
+
         console.log(this);
     }
 
@@ -22,29 +24,42 @@ class Game{
         scene.add(this.board);
 
         this.camera = camera;
+        
+        scene.add(this.myObj);
     }
 
-    newPlayer(){
-        let p = new Player(0x0000aa);
-        this.Players.push(p);
-        this.scene.add(p)
-    }
-    
-    sendPos(){
-        //console.log(this.camera)
-        if(this.socket && this.camera && this.myObj){
-            this.socket.emit('playerPosition',{
-                x: this.camera.position.x,
-                y: this.camera.position.y,
-                z: this.camera.position.z,
-                rx: this.camera.rotation.x,
-                ry: this.camera.rotation.y,
-                rz: this.camera.rotation.z,
-                id: this.myObj.id
-            });
+    updatePlayers(allPlayerDataById){
+        //console.log(allPlayerDataById);
+        let updated = {}; //updated tracker
+        for(const p in this.PlayersById){
+            updated[p] = false;
+        }
+
+        //debugger;
+
+        for(const p in allPlayerDataById){
+            if(this.PlayersById[p] == undefined){
+                let pObj = new Player();
+                this.PlayersById[p] = pObj;
+                this.scene.add(pObj)
+            }
+            
+            this.PlayersById[p].updateFromPublicUserData(allPlayerDataById[p]);
+            updated[p] = true
+        }
+
+        for(const p in this.PlayersById){
+            if(updated[p] == false){
+                this.scene.remove(this.PlayersById[p]); //remove from scene
+            }
         }
     }
 
+    //for adding other players
+    newPlayer(){
+        this.scene.add(p);
+    }
+    
 }
 
 export default Game;

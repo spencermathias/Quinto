@@ -1,8 +1,8 @@
 import * as THREE from '../build/three.module.js';
 
 
-const radius = .075;
-const depth = .01;
+const radius = .038;
+const depth = .005;
 const sinr = Math.sin(Math.PI/3);
 
 const sinr6 = Math.sin(Math.PI/6);

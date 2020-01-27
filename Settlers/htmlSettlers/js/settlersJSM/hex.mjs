@@ -28,8 +28,8 @@ class hexGeometry extends THREE.ExtrudeBufferGeometry{
         this.rotateX(-Math.PI/2);
     }
 }
-const radius = .075;
-const depth = .01;
+const radius = .038;
+const depth = .005;
 let geometry = new hexGeometry(radius, depth);
 //let geometry = new THREE.ExtrudeBufferGeometry( shape, extrudeSettings );
 

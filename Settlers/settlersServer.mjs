@@ -8,24 +8,35 @@ var http = require("http");
 var io = require("socket.io");*/
 
 import express from 'express';
+import https from 'https';
 import http from 'http';
+import fs from 'fs';
 import ios from 'socket.io';
 
-import {setSyncedSocket,syncedRegisterHandler,synced} from './htmlSettlers/js/syncedObject.mjs';
+//import {setSyncedSocket,syncedRegisterHandler,synced} from './htmlSettlers/js/syncedObject.mjs';
 //setSyncedSocket(io);
 //var shared = require('./htmlSettlers/js/shared.js'); //get shared functions
 
 //const spawn = require("child_process").spawn;
 
-var app = express();
+const app = express();
 app.use(express.static("./htmlSettlers")); //working directory
 //Specifying the public folder of the server to make the html accesible using the static middleware
 
-var socket = 8080;
-//var server = http.createServer(app).listen(8080); //Server listens on the port 8124
-var server = http.createServer(app).listen(socket,"0.0.0.0",511,function(){console.log(__line,"Server connected to socket: "+socket);});//Server listens on the port 8124
+var socket = 443;
+
+//to create a self signed ssl files enter the following into a terminal with openssl:
+//openssl genrsa -out key.pem
+//openssl req -new -key key.pem -out csr.pem
+//openssl x509 -req -days 9999 -in csr.pem -signkey key.pem -out cert.pem
+//rm csr.pem
+var sslFiles = {
+	key: fs.readFileSync('./key.pem'),
+	cert: fs.readFileSync('./cert.pem')
+};
+var server = https.createServer(sslFiles,app).listen(socket,"0.0.0.0",511,function(){console.log(__line,"Server connected to socket: "+socket);});//Server listens on the port 8124
 let io = ios.listen(server);
-setSyncedSocket(io);
+//setSyncedSocket(io);
 /*initializing the websockets communication , server instance has to be sent as the argument */
 
 
@@ -84,12 +95,12 @@ var spectatorColor = "#444444";
 var notYourTurnColor = "#ffffff";
 var yourTurnColor = "#0000ff";
 
+
 /* accepts parameters
  * h  Object = {h:x, s:y, v:z}
  * OR 
  * h, s, v
- * 0<h<1
-*/
+ * 0<h<1    */
 function HSVtoRGB(h, s, v) {
     var r, g, b, i, f, p, q, t;
     if (arguments.length === 1) {
@@ -127,53 +138,39 @@ function newColor(){
 
 console.log("Server Started!");
 
+let curId = 0;
 function defaultUserData(){
 	return {
-		userName: "Unknown",
-		tiles: [],
-		score: 0,
-		userColor: newColor(),
-		ready: false,
-		skippedTurn: false
+		public:{
+			userName: "Unknown",
+			userColor: newColor(),
+			id: ++curId
+		}
 	}
 }
 
 
 io.on("connection", function(socket) {
-	syncedRegisterHandler(socket);
+	//syncedRegisterHandler(socket);
 
     socket.userData = defaultUserData();
-
-    allClients.push(socket);
-    if (gameStatus === gameMode.LOBBY) {
-        //socket.userData.statusColor = notReadyColor;
-    } else {
-		spectators.push(socket);
-        //socket.userData.statusColor = spectatorColor;
-        //updateBoard(socket, notReadyTitleColor, true);
-		//updateUsers(socket);
-		//socket.emit("allTiles", allTiles);
-		//socket.emit('boardState', boardState);
-    }
+	allClients.push(socket);
 
 	//message(socket, "Connection established!", serverColor)
 
     console.log(__line, "Socket.io Connection with client " + socket.id +" established");
+	sendPublicUserdataToAll(); //updates everyone of new player. //should be moved somewhere so it cannot be spammed
 	
-	//send how many players there are, and which id the new player is
-	socket.emit('allPlayers',{number: allClients.length, id: allClients.length-1});
-	socket.broadcast.emit('newPlayer');
-
     socket.on("disconnect",function() {
-		//message( io.sockets, "" + socket.userData.userName + " has left.", serverColor);
+		//message( io.sockets, "" + socket.userData.public.userName + " has left.", serverColor);
 		//message( io.sockets, "Type 'kick' to kick disconnected players", serverColor);
 		
-		console.log(__line,"disconnected: " + socket.userData.userName + ": " + socket.id);
+		console.log(__line,"disconnected: " + socket.userData.public.userName + ": " + socket.id);
         var i = allClients.indexOf(socket);
         if(i >= 0){ allClients.splice(i, 1); }
 		var i = spectators.indexOf(socket);
         if(i >= 0){ spectators.splice(i, 1); }
-		//updateUsers();
+		sendPublicUserdataToAll();
         //players are only removed if kicked
     });
 	
@@ -181,13 +178,11 @@ io.on("connection", function(socket) {
 		console.log(__line, "oldID:", id);
 		for(var i = 0; i < players.length; i++){
 			if(players[i].id == id){
-				console.log(__line, "found old player!", players[i].userData.username, socket.userData.userName);
+				console.log(__line, "found old player!", players[i].userData.public.username, socket.userData.public.userName);
 				var j = spectators.indexOf(socket);
 				if(j >= 0){spectators.splice(j, 1)};
 				socket.userData = players[i].userData;
 				players[i] = socket;
-				//socket.emit('tiles', socket.userData.tiles);
-				//updateTurnColor();
 			} else {
 				console.log(__line, "new player");
 			}
@@ -196,6 +191,7 @@ io.on("connection", function(socket) {
 
 	//send position data to everyone
 	socket.on('playerPosition', function(pos){
+		pos.id = socket.userData.public.id;
 		socket.broadcast.emit('playerPosition', pos);
 	});
 
@@ -236,7 +232,7 @@ io.on("connection", function(socket) {
         //socket.userData.ready = false;
         console.log(__line,"added new user: " + socket.userData.userName);
 		message(io.sockets, "" + socket.userData.userName + " has joined!", serverColor);
-        updateUsers();
+        sendPublicUserdataToAll();
     });
 
     socket.on("ready", function(ready) {
@@ -251,7 +247,7 @@ io.on("connection", function(socket) {
 			}
             checkStart();
 			console.log(__line,"" + socket.userData.userName + " is ready: " + ready.ready);
-            updateUsers();
+            sendPublicUserdataToAll();
         }
     });
 	
@@ -314,36 +310,20 @@ function message(socket, message, color){
 	};
 	socket.emit('message',JSON.stringify(messageObj));
 }
+*/
 
-function updateUsers(target = io.sockets){
-	console.log(__line,"--------------Sending New User List--------------");
-    var userList = [];
-	if(gameStatus == gameMode.LOBBY){
-		allClients.forEach(function(client){
-			userList.push(getUserSendData(client));
-		});
-	} else {
-		players.forEach(function(client){
-			userList.push(getUserSendData(client));
-		});
-		spectators.forEach(function(client){
-			userList.push(getUserSendData(client));
-		});
-	}
-    console.log(__line,"----------------Done Sending List----------------");
-	
-	io.sockets.emit('userList', userList);
+//updates all users
+function sendPublicUserdataToAll(){
+	//console.log(__line,"--------------Sending New User List--------------");
+    let userList = [];
+	allClients.forEach(function(client){
+		userList.push(client.userData.public);
+	});
+    //console.log(__line,"----------------Done Sending List----------------");
+	io.sockets.emit('allPublicUserData', userList);
 }
 
-function getUserSendData(client){
-	console.log(__line,"userName:", client.userData.userName, " |ready:", client.userData.ready, "|status:", client.userData.statusColor, "|score:", client.userData.score);
-	return{
-		id: client.id,
-		userName: client.userData.userName,
-		color: client.userData.statusColor,
-		score: client.userData.score
-	};
-}
+/*
 
 function updateBoard(socketSend, titleColor, showBoard) { //switches between title and game screen
     var showBoardMessage = {
@@ -598,3 +578,19 @@ stdin.addListener("data", function(d) {
 	}
   });
   */
+
+
+  //server console input
+  var stdin = process.openStdin();
+  stdin.addListener("data", function(d) {
+    // note:  d is an object, and when converted to a string it will
+    // end with a linefeed.  so we (rather crudely) account for that  
+    // with toString() and then trim() 
+	var input = d.toString().trim();
+    console.log('you entered: [' + input + ']');
+	try{
+		eval("console.log("+input+")");
+	} catch (err) {
+		console.log("invalid command");
+	}
+  });

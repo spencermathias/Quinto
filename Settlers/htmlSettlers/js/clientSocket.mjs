@@ -4,8 +4,9 @@
 //import * as io from '../../socket.io/socket.io.js';
 
 //socket connection info
-let publicAddress = 'http://alanisboard.ddns.net/';
-let internalAddress = 'http://localhost:8080/';
+let publicAddress = 'https://alanisboard.ddns.net/';
+//let publicAddress = '144.39.227.91:8080';
+let internalAddress = 'https://localhost/';
 
 let socket = io(publicAddress); //try public address //"24.42.206.240" for alabama
 
@@ -42,28 +43,36 @@ socket.on('connect', function(){
 		socket.emit('oldId', localStorage.id);
 	}
 	localStorage.id = socket.id;*/
+
+	//start periodically sending position data
+	setInterval(periodicData,100);
 });
 
-socket.on('allPlayers', function(playersObj){
-    for(let i=0; i < playersObj.number; i++){
-        if(socket.game.Players[i] == undefined){
-            socket.game.newPlayer();
-        }
+function periodicData(){
+	//get data
+	let pos = socket.game.myObj.getPositionAndRotation();
+	//send to server; the server adds the appropriate id to the message
+	socket.emit('playerPosition',pos);
+}
 
-        //identify which is this players object
-        if(i == playersObj.id){
-            socket.game.myObj = {obj: socket.game.Players[i], id: i};
-        }
+
+//read only
+let allPlayersById = {};
+
+socket.on('allPublicUserData', function(userList){
+	//console.log(userList);
+    for(let i=0; i < userList.length; i++){
+		let p = userList[i];
+		//update dictionary of players
+		allPlayersById[p.id] = p;
+		socket.game.updatePlayers(allPlayersById);
     }
 });
 
-socket.on('newPlayer', function(pos){
-	socket.game.newPlayer();
-});
-
 socket.on('playerPosition', function(pos){
-    let p = socket.game.Players[pos.id];
-    p.setPositionAndRotation(pos)
+	if(socket.game.PlayersById[pos.id] != undefined){
+		socket.game.PlayersById[pos.id].setPositionAndRotation(pos);
+	}
 });
 
 //console.log("hello")

@@ -4,7 +4,7 @@
 //import * as io from '../../socket.io/socket.io.js';
 
 //socket connection info
-let publicAddress = 'https://alanisboard.ddns.net/';
+let publicAddress = 'https://192.168.1.10'; //'https://alanisboard.ddns.net/';
 //let publicAddress = '144.39.227.91:8080';
 let internalAddress = 'https://localhost/';
 

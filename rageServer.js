@@ -7,6 +7,8 @@
 var express = require("express");
 var http = require("http");
 var io = require("socket.io");
+var mysql = require('mysql');
+
 //const spawn = require("child_process").spawn;
 
 var app = express();
@@ -18,6 +20,24 @@ var socket = 8080;
 var server = http.createServer(app).listen(socket,"0.0.0.0",511,function(){console.log(__line,"Server connected to socket: "+socket);});//Server listens on the port 8124
 io = io.listen(server);
 /*initializing the websockets communication , server instance has to be sent as the argument */
+
+
+// DATABASE
+var con = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  password: "cherrydragonfruit",
+  database: "rage"
+});
+
+con.connect(function(err) {
+  if (err) throw err;
+});
+
+var gameId = -1; //game id for database
+
+
+// END DATABASE
 
 var minPlayers = 2;
 var maxPlayers = 9; //must increase card number for more players
@@ -414,6 +434,21 @@ function checkStart() {
 }
 
 function gameStart() {
+	//get new game id
+	function getGameIDCallBack(err, result, fields) {
+		console.log(__line,"aaaaaaaaaaaaaaaaa", err, result);
+		if (err) throw err;
+		if (result.length < 1){
+			gameId = 0;
+		} else {
+			gameId = result[0].game_id+1;
+		}
+		console.log(__line, "game id result: ", gameId);
+	}
+	con.query("SELECT game_id FROM data_per_round ORDER BY game_id DESC, id DESC LIMIT 1", getGameIDCallBack);
+
+	
+	
 	currentRound = numberOfRounds;
 	currentTurn = 0;
 	if(players.length > 0){
@@ -584,6 +619,16 @@ function checkForAllBids() {
 				bidTotal += player.userData.bid;
 				player.emit('playerLeadsRound', false); //turn off 'you lead' sign
 			});
+			
+			//log # bid on # to database
+			console.log(__line, "gameId to send:", gameId);
+			let sql = "INSERT INTO data_per_round (Game_Id, Total_Bid, Hand_Size) VALUES (?, ?, ?)";
+			con.query(sql, [gameId, bidTotal, currentRound], function (err, result) {
+				if (err) throw err;
+				console.log("1 record inserted");
+			});
+			
+			
 			message( io.sockets, bidTotal + " bid on " + currentRound, gameColor);
 			gameStatus = gameMode.PLAY;
 			tallyScoreFromHand(); //show initial score

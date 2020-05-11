@@ -3,8 +3,13 @@
 // put chat log behind a button for mobile; only show the last message for a second
 
 //events
-var publicAddress = 'http://alanisboard.ddns.net:8080/';
+var publicAddress = 'http://localhost:8080/';
 var internalAddress = 'http://localhost:8080/';
+
+const buttonType = {
+	FACEUP:0,
+	FACEDOWN:1
+};
 
 window.addEventListener('load', function() {
 	var lastTouch = {x:0, y:0};
@@ -30,8 +35,8 @@ window.addEventListener('load', function() {
 		lastTouch.y = touchY;
 
 		e.preventDefault(); //prevent scrolling, scroll shade, and refresh
-		board.x += dx;
-		board.y += dy;
+		//board.x += dx;
+		//board.y += dy;
 		return;
 	}
 
@@ -77,7 +82,6 @@ function allowAudio(){
 var tileWidth = 40 //* window.devicePixelRatio;
 var tileHeight = 40 //* window.devicePixelRatio;
 var tileFontSize = 30 //* window.devicePixelRatio;
-var allTiles = new Deck(shared.cardDes);
 var serverTiles = [];
 var selected = undefined;
 var scoreIsValid = false;
@@ -125,7 +129,7 @@ class Button {
 				ctx.rotate(Math.atan(this.height/this.width));
 			}
 			if(this.textColor != undefined){
-				ctx.fillText(this.text,,0);
+				ctx.fillText(this.text,0,0);
 			}
 			if(this.textOutline != undefined){
 				ctx.strokeText(this.text, 0, 0);
@@ -148,15 +152,15 @@ class leftSidePannal{
 		this.fillColor = fillColor;
 		this.text = text;
 	}
-	draw(ctx)
-		ctx.fillRect(this.x,this.y,this.width,this,hight);
+	draw(ctx){
+		roundRect(this.x,this.y,this.width,this.hight);
 		ctx.fillStyle = this.fillColor;
 		ctx.font = '' + 30 + 'px Arimo'
 		ctx.fillText(this.text,0,0)
 	}
 }
 
-class confirmButtonTakeTop extends Button{
+class ConfirmButtonTakeFaceDown extends Button{
 	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant){
 		super(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant)
 		this.visible = (text.length >= 0);
@@ -165,46 +169,22 @@ class confirmButtonTakeTop extends Button{
 	}
 	draw(ctx){
 		ctx.save();
-		roundRect(ctx,this.x,this.y,this.width,this.hight,50,this.fillColor,this.outlineColor);
+		roundRect(ctx,this.x,this.y,this.width,this.hight,0,this.fillColor,this.outlineColor);
 		ctx.fillStyle = this.highlightColor;
 		ctx.restore();
-		this.visible = false;
+		this.visible = true;
 		
 		ctx.font = '' + this.fontSize + 'px Arimo'
 		ctx.fillText(this.text,0,0)
 	}
 	
 	click(){
-		lastSubmitPushed = takeTop;
+		lastSubmitPushed = buttonType.FACEDOWN;
 		
 	}
 }
 
-class confirmButtonTakeFaceDown extends Button{
-	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant){
-		super(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant)
-		this.visible = (text.length >= 0);
-		this.highlightColor = "Magenta";
-		this.selected = false;
-	}
-	draw(ctx){
-		ctx.save();
-		roundRect(ctx,this.x,this.y,this.width,this.hight,50,this.fillColor,this.outlineColor);
-		ctx.fillStyle = this.highlightColor;
-		ctx.restore();
-		this.visible = false;
-		
-		ctx.font = '' + this.fontSize + 'px Arimo'
-		ctx.fillText(this.text,0,0)
-	}
-	
-	click(){
-		lastSubmitPushed = takeTop;
-		
-	}
-}
-
-class confirmButtonTakeFaceUp extends Button{
+class ConfirmButtonTakeFaceUp extends Button{
 	constructor(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant){
 		super(x,y,width,height,text,fillColor,outlineColor,textColor,textOutlineColor,fontSize,textSlant)
 		this.visible = (text.length >= 0);
@@ -214,12 +194,12 @@ class confirmButtonTakeFaceUp extends Button{
 	draw(ctx){
 		ctx.save();
 		ctx.fillStyle = this.highlightColor;
-		roundRect(ctx,this.x,this.y,this.width,this.hight,50,this.fillColor,this.outlineColor);
+		roundRect(ctx,this.x,this.y,this.width,this.height,0,this.fillColor,this.outlineColor);
 		ctx.restore();
-		this.visible = false;
+		this.visible = true;
 	}
 	click(){
-		socket.emit('takeFaceUpClicked');
+		lastSubmitPushed = buttonType.FACEUP;
 	}
 }
 
@@ -248,7 +228,7 @@ class Tile extends Button{
 			this.visible = (this.text.length >= 0);*/
 		//}
 		console.log(this.cardNumber,'new',cardNumber);
-		this.text = allTiles.getProperties(cardNumber).products.name;
+		this.text = '' + cardNumber;
 		this.visible = (this.text.length >= 0);
 		this.cardNumber = cardNumber;
 	}
@@ -260,6 +240,7 @@ class Tile extends Button{
 			roundRect(ctx, this.x-(this.width/2 + tilePadding), this.y-(this.height/2 + tilePadding), this.width+2*tilePadding, this.height+2*tilePadding, this.width/8,true, false);
 			ctx.restore();
 			//this.highlightColor = "";
+			ctx.fillText(this.text,(this.width/60) * this.text,40);
 		}
 		super.draw(ctx);
 	}
@@ -274,9 +255,17 @@ class Tile extends Button{
 		console.log(this);
 		this.selected = !this.selected;
 		
-		if (tilesSelected == 1){
-			x = indexOf(
-			socket.emit('switchCards',);
+		if (lastSubmitPushed == buttonType.FACEUP){
+			console.log("switch", selected.tileData, this.tileData);
+				var tempNumber = selected.tileData.number;
+				var tempOwner = selected.tileData.owner;
+				var tempId = selected.tileData.id;
+				selected.updateData(this.tileData);
+				this.updateData({owner: tempOwner, number: tempNumber, id: tempId});
+				selected = undefined;
+		}
+		if (lastSubmitPushed == buttonType.FACEDOWN){
+			socket.emit('switchCardsWithFaceDown');
 		}
 	}
 }
@@ -424,15 +413,15 @@ class BiddingInterface{
 			for (var i = 1; i <= 4; i++){
 				shapes[0].push(new Button(x,y,textsize,textsize,i,'#8888ff','#000000','#000000','#000000',textsize/2,false));
 				x += textsize*2;
-			}*/
+			}
 		//});
 	}
-}
+}*/
 
 
 class SubmitButton extends Button{
 	constructor(){
-		super(canvas.width/2, canvas.height-tileHeight-40, canvas.width, tileHeight,"SUBMIT",'#0000ff',undefined,'#ffffff',undefined,tileFontSize,false)
+		super(canvas.width/2, canvas.height-tileHeight-40, canvas.width, tileHeight,"SUBMIT",'#0000ff',undefined,'#ffffff',undefined,tileFontSize,false);
 	}
 	click(){
 		if (tilesSelected == 0){
@@ -442,7 +431,6 @@ class SubmitButton extends Button{
 			if(this.visible){
 				let selected = tiles.selected;
 				socket.emit('switchCards',selected)
-				}
 			}
 		}
 	}
@@ -681,9 +669,6 @@ socket.on('startGame',()=>{
 	var textsize = 40;
 	var y = textsize;
 	userList.forEach((userName,i)=> {
-		if (userName.ready){
-			tradingUi.push(new BiddingInterface(i,y,textsize));
-		}	
 		y += textsize*1.5;
 	});
 });
@@ -707,9 +692,7 @@ function changeName(userId){
 var myTiles = [];
 var playerTradeMatrix = [];
 var tradingUi = [];
-var boardState = [[]];
 var newState = [[]];
-var board = new Board(canvas.width/2, canvas.height/2, boardState.length, boardState[0].length, tileHeight+2*tilePadding, tileWidth+2*tilePadding);
 var submitButton = new SubmitButton();
 var shapes = [[],[],[]];
 var userList = [];
@@ -727,19 +710,20 @@ var myUserlistString = "";
 
 for (var i = 0;i < 10;i++){
 	var tile = new Tile(
-		canvas.width/2,
+		canvas.width,
 		((canvas.height)/2)/i,
 		tileWidth,
 		tileHeight,
 		'',
 		newTileColor,'#000000','#000000','#000000',
-		20,true
+		20,false
 	);
 	//tile.drawOutline(placeholderColor); //placeholder outline
 	myTiles.push(tile);
 }
-var confirmButtonTakeTop = new confirmButtonTakeTop((canvas.width/20) * 59,(canvas.hight/20) * 19,(canvas.width/10),(canvas.hight/20),'Take The Top Card','Red',undefined,'Black',undefined,30,false);
-socket.on("message",function(message){  
+var confirmButtonTakeFaceDown = new ConfirmButtonTakeFaceDown(canvas.width,(canvas.height/10),canvas.width/4,canvas.height/4,'Face Up','Red',undefined,'Black',undefined,12,false);
+var confirmButtonTakeFaceUp = new ConfirmButtonTakeFaceUp(canvas.width,canvas.height/10,canvas.width/4,canvas.height,'Face Down','Red',undefined,'Black',undefined,12,false);
+socket.on("message",function(message){
 	/*
 		When server sends data to the client it will trigger "message" event on the client side , by 
 		using socket.on("message") , one cna listen for the ,message event and associate a callback to 
@@ -810,8 +794,8 @@ socket.on('tiles', function(tiles){
 	console.log('tiles updated: ', myTiles);
 });
 
-socket.on('boardState', function(recievedBoardState){
-	board.updateFromServer(recievedBoardState);
+//socket.on('boardState', function(recievedBoardState){
+	/*board.updateFromServer(recievedBoardState);
 	
 	if(newState.length != recievedBoardState.length || newState[0].length != recievedBoardState[0].length){ //clear new state if different size
 		//TODO: move tiles in newState back to hand
@@ -831,7 +815,7 @@ socket.on('boardState', function(recievedBoardState){
 	}
 	
 	updatePlayValidity();
-});
+});*/
 
 socket.on('gameEnd',()=>{
 	myTiles.forEach((t)=>{
@@ -841,7 +825,7 @@ socket.on('gameEnd',()=>{
 });
 
 function updatePlayValidity(){
-	var check = shared.validTilesToPlay(serverTiles, getTileData(newState), getTileData(boardState), allTiles);
+	//var check = shared.validTilesToPlay(serverTiles, getTileData(newState), getTileData(boardState), allTiles);
 	if(check.error.length == 0){
 		$('#userListDiv'+myUserlistIndex)[0].innerHTML = (myUserlistString + " + " + check.score);
 	} else {
@@ -898,6 +882,8 @@ function draw(){
 	
 	//var radius = (Math.min(canvas.width, canvas.height-140)/2)-50;
 	shapes[0].push(submitButton);
+	shapes[0].push(confirmButtonTakeFaceDown);
+	shapes[0].push(confirmButtonTakeFaceUp);
 	//player tiles
 	for(var i = 0; i < myTiles.length; i++){
 		//if(myTurn){
@@ -912,8 +898,7 @@ function draw(){
 		shapes[0].push( myTiles[i] );//1st layer
 	}
 	
-	//tradingUi
-	tradingUi.forEach((ui)=> ui.addToShapes(shapes[0]));
+	
 	
 	//selected outline
 	if(selected != undefined){
@@ -944,10 +929,10 @@ function resizeDrawings(){
 	tileWidth = 100; //* window.devicePixelRatio;
 	tileHeight = 50; //* window.devicePixelRatio;
 	tileFontSize = 30; //* window.devicePixelRatio;
-	board.x = canvas.width/2;
+	/*board.x = canvas.width/2;
 	board.y = canvas.height/2;
 	board.rowThickness = tileHeight + 2*tilePadding;
-	board.columnThickness = tileWidth + 2*tilePadding;
+	board.columnThickness = tileWidth + 2*tilePadding;*/
 	
 	for(var i = 0; i < myTiles.length; i++){
 		myTiles[i].updateSize((canvas.width/2) + (tileWidth + 20) * (i-(myTiles.length/2)+0.5) , canvas.height - (tileHeight + 20), tileHeight, tileWidth);

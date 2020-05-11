@@ -6,13 +6,15 @@
 var express = require("express");
 var http = require("http");
 var io = require("socket.io");
-var Deck = require('./htmlPit/js/Deck.js'); //get shared functions
-var shared = require('./htmlPit/js/shared.js'); //get shared functions
-
+var shared = require('./htmlRacko/js/shared.js'); //get shared functions
+var cardOnTop = [];
+var cardsInPile = [];
+var cardPlayedOnTopOf = [];
+var pile = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60];
 //const spawn = require("child_process").spawn;
 
 var app = express();
-app.use(express.static("./htmlPit")); //working directory
+app.use(express.static("./htmlRacko")); //working directory
 //Specifying the public folder of the server to make the html accesible using the static middleware
 
 var socket = 8080;
@@ -61,7 +63,6 @@ function defaultUserData(){
 	return {
 		userName: "Unknown",
 		tiles: [],
-		score: 0,
 		statusColor: notReadyColor,
 		ready: false,
 	}
@@ -168,15 +169,15 @@ io.sockets.on("connection", function(socket) {
         }
     });
 	
-	socket.on('submitedBidTiles',function(tileNumbers){
+	/*socket.on('submitedBidTiles',function(tileNumbers){
 		//makes sure people actily have those cards
 		if (checkCardOwner(socket,tileNumbers)!= undefined){
 			socket.userData.bids.push(tileNumbers);
 			updateUsers();
 		}
-	});
+	});*/
 	
-	socket.on('attemptTrade',function(tileNumbers, toPlayerNumber){
+	/*socket.on('attemptTrade',function(tileNumbers, toPlayerNumber){
 		if (checkCardOwner(socket,tileNumbers)!= undefined){
 			console.log(__line,playerTradeMatrix);
 			fromPlayerNumber = players.indexOf(socket);
@@ -188,7 +189,7 @@ io.sockets.on("connection", function(socket) {
 			players[toPlayerNumber].emit('tradeMatrix',playerTradeMatrix[toPlayerNumber]);
 			console.log(__line,playerTradeMatrix);
 		}
-	});
+	});*/
 	
 	//socket.on('takeFaceUpClicked'function (){
 		//socket.on('switchCards'function () {
@@ -255,43 +256,15 @@ function shuffleAndDeel(fromArayy,toArayy){
 
 function newRound(socket,add){
 	console.log(__line,'user check',socket !== undefined);
-	if (socket !== undefined){ 
-		message(io.sockets,socket.userData.userName + ' won that round',gameColor);
-		socket.userData.score += add;
-		updateUsers();
-		if (socket.userData.score >= 50){
-			return actilyGameEnd(socket);
-		}
-	}
-	playerTradeMatrix = [];
 	message(io.sockets, "A NEW ROUND HAS STARTED", gameColor);
-	
-	//clear trades and bids
-	players.forEach(function(player){
-		player.userData.trades = [];
-		player.userData.tiles = [];
-		player.userData.bids = [];
-		player.userData.incomingTrades = [];
-		players.forEach(function (p){player.userData.incomingTrades.push(new Array())});
-		playerTradeMatrix.push(player.userData.incomingTrades);
-		
-		player.emit('tradeMatrix',player.userData.incomingTrades);
-	});
-	
-	Math.float(Math.random * shared.cardDes.proprities.length);
 	
 	updateBoard(io.sockets, readyTitleColor, true);
 	console.log(__line,'p',players.length);
-	shared.cardDes.products = shared.cardDes.products.slice(0,players.length);
-	tiles = new Deck( shared.cardDes); //deck to deal to players
-	var pile = new Array(tiles.totalCards);
-	for (var i = 0; i < pile.length; i++){ pile[i]=i;}
-	for (var i = 0; i < pile.length; i++){
-		console.log(__line,'cards',pile[i],tiles.getProperties(pile[i]));
-	}
 	//console.log(__line, "cards", pile) ;
 	//console.log(__line, "cards", tiles);
-	dealTiles(allPlayers,pile,10)
+	players.forEach(function (player){
+		dealTiles(player,pile,10);
+	});
 	sendTilesToAllPlayers(players);
 	//console.log(__line, "cards", tiles);
 	//console.log(__line, "allTiles", allTiles);
@@ -373,22 +346,12 @@ function updateUsers(target = io.sockets){
 
 function getUserSendData(client){
 	console.log(__line,"userName:", client.userData.userName, " |ready:", client.userData.ready, "|status:", client.userData.statusColor, "|score:", client.userData.score);
-	let bids = [0,0,0,0];
-	client.userData.bids.forEach((b)=>{
-		bids[b.length-1]++;
-	});
-	let trades = [0,0,0,0];
-	client.userData.trades.forEach((b)=>{
-		trades[b.length-1]++;
-	});
 	return{
 		id: client.id,
 		userName: client.userData.userName,
 		color: client.userData.statusColor,
 		score: client.userData.score,
 		ready: client.userData.ready,
-		incomingTrades: client.userData.incomingTrades,
-		bids,trades
 	};
 }
 
@@ -469,10 +432,10 @@ function dealTiles(player, carddeck, amountToBeDelt) {
 
 //deals a single tile
 function dealSingleTile(player,carddeck){
-	x = Math.floor(Math.random * fromArayy.length);
-	toArayy.push(x);
-	y = fromArayy.indexOf(x);
-	fromArayy.splice(y,1)
+	x = Math.floor(Math.random * pile.length);
+	player.userData.tiles.push(x);
+	y = pile.indexOf(x);
+	pile.splice(y,1)
 }
 
 //removes a element from deck array and gives it to the players user data array

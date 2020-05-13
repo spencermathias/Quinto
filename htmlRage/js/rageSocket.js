@@ -1,5 +1,5 @@
 //socket stuff
-var localAddress = "localhost";
+var localAddress = "localhost:8080";
 
 var socket = io("alanisboard.ddns.net"); //try public address
 var trylocal = 0;

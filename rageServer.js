@@ -26,12 +26,15 @@ io = io.listen(server);
 var con = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "cherrydragonfruit",
+  password: "",
   database: "rage"
 });
 
+var useDatabase = true;
 con.connect(function(err) {
-  if (err) throw err;
+  //if (err) throw err;
+  console.warn("Error connecting to MYSQL server. Scores will not be recorded");
+  useDatabase = false;
 });
 
 var gameId = -1; //game id for database
@@ -434,18 +437,21 @@ function checkStart() {
 }
 
 function gameStart() {
-	//get new game id
-	function getGameIDCallBack(err, result, fields) {
-		console.log(__line,"aaaaaaaaaaaaaaaaa", err, result);
-		if (err) throw err;
-		if (result.length < 1){
-			gameId = 0;
-		} else {
-			gameId = result[0].game_id+1;
+	if(useDatabase){
+		//get new game id
+		function getGameIDCallBack(err, result, fields) {
+			console.log(__line,"aaaaaaaaaaaaaaaaa", err, result);
+			if (err) throw err;
+			if (result.length < 1){
+				gameId = 0;
+			} else {
+				gameId = result[0].game_id+1;
+			}
+			//console.log(__line, "game id result: ", gameId);
 		}
-		//console.log(__line, "game id result: ", gameId);
+	
+		con.query("SELECT game_id FROM data_per_round ORDER BY game_id DESC, id DESC LIMIT 1", getGameIDCallBack);
 	}
-	con.query("SELECT game_id FROM data_per_round ORDER BY game_id DESC, id DESC LIMIT 1", getGameIDCallBack);
 
 	
 	
@@ -620,13 +626,15 @@ function checkForAllBids() {
 				player.emit('playerLeadsRound', false); //turn off 'you lead' sign
 			});
 			
-			//log # bid on # to database
-			console.log(__line, "gameId to send:", gameId);
-			let sql = "INSERT INTO data_per_round (Game_Id, Total_Bid, Hand_Size) VALUES (?, ?, ?)";
-			con.query(sql, [gameId, bidTotal, currentRound], function (err, result) {
-				if (err) throw err;
-				console.log("1 record inserted");
-			});
+			if(useDatabase){
+				//log # bid on # to database
+				console.log(__line, "gameId to send:", gameId);
+				let sql = "INSERT INTO data_per_round (Game_Id, Total_Bid, Hand_Size) VALUES (?, ?, ?)";
+				con.query(sql, [gameId, bidTotal, currentRound], function (err, result) {
+					if (err) throw err;
+					console.log("1 record inserted");
+				});
+			}
 			
 			
 			message( io.sockets, bidTotal + " bid on " + currentRound, gameColor);

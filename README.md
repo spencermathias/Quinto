@@ -36,7 +36,9 @@ For windows:
 	1. install dependencies with: npm install
 
 	2. set the public and local ip address in htmlRage->js->rageSocket.js
+	
 		var localAddress = "localhost:8080";
+		
 		var socket = io("192.168.1.xxx:8080"); // <- change this ip to the computers
 
 	3. From the projct folder, run: node .\rageServer.js 

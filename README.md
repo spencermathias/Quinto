@@ -3,6 +3,7 @@
 1. Install Node:
 
 For raspberry pi:
+
 	0. find out what arm version the cpu on your rasperry pi is with the command: cat /proc/cpuinfo
 
 	1. download node from nodejs.org. Go to other downloads and select the arm version that matches the info from the above step.

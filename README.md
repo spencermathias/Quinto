@@ -26,7 +26,7 @@ For windows:
 
 	2. install node with default options
 
-	3. open a terminal in the RPi-RTDS project folder
+	
 
 
 
@@ -34,14 +34,16 @@ For windows:
 
 2. setup project:
 
-	1. install dependencies with: npm install
+	1. open a terminal in the RPi-RTDS project folder
 
-	2. set the public and local ip address in htmlRage->js->rageSocket.js
+	2. install dependencies with: npm install
+
+	3. set the public and local ip address in htmlRage->js->rageSocket.js
 	
 		var localAddress = "localhost:8080";
 		
 		var socket = io("192.168.1.xxx:8080"); // <- change this ip to the computers
 
-	3. From the projct folder, run: node .\rageServer.js 
+	4. From the projct folder, run: node .\rageServer.js 
 
-	4. Open a browser and go to localhost or the ip address of the computer.
+	5. Open a browser and go to localhost or the ip address of the computer. The web page should appear with a dialog box asking for a username

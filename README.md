@@ -27,12 +27,18 @@ For windows:
 
 3. open a terminal in the RPi-RTDS project folder
 
-4. install dependencies with: npm install
 
-5. set the public and local ip address in htmlRage->js->rageSocket.js
+
+
+
+2. setup project:
+
+1. install dependencies with: npm install
+
+2. set the public and local ip address in htmlRage->js->rageSocket.js
 	var localAddress = "localhost:8080";
 	var socket = io("192.168.1.xxx:8080"); // <- change this ip to the computers
 
-6. From the projct folder, run: node .\rageServer.js 
+3. From the projct folder, run: node .\rageServer.js 
 
-7. Open a browser and go to localhost or the ip address of the computer.
+4. Open a browser and go to localhost or the ip address of the computer.

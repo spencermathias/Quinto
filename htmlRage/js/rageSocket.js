@@ -1,5 +1,5 @@
 //socket stuff
-var localAddress = "localhost:8080";
+var localAddress = "localhost";
 
 var socket = io("alanisboard.ddns.net"); //try public address
 var trylocal = 0;
@@ -8,7 +8,7 @@ socket.on('connect_error',function(error){
 	console.log("socket to:", socket.disconnect().io.uri, "has been closed.");
 	if(!trylocal){ //prevent loops
 		if(window.location.href != 'http://'+localAddress+':8080/'){
-			window.location.replace('http://'+localAddress+'/');
+			window.location.replace('http://'+localAddress+':8080/');
 		}
 		socket.io.uri = localAddress+":8080";
 		console.log("Switching to local url:", socket.io.uri);

@@ -443,7 +443,7 @@ function gameStart() {
 		} else {
 			gameId = result[0].game_id+1;
 		}
-		console.log(__line, "game id result: ", gameId);
+		//console.log(__line, "game id result: ", gameId);
 	}
 	con.query("SELECT game_id FROM data_per_round ORDER BY game_id DESC, id DESC LIMIT 1", getGameIDCallBack);
 

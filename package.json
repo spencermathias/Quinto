@@ -1,0 +1,27 @@
+{
+  "name": "RPi-RTDS",
+  "version": "0.0.2",
+  "description": "Raspberry pi realtime data server based on node.js express and socket.io.",
+  "main": "cribbageServer.js",
+  "dependencies": {
+    "express": "^4.16.4",
+    "jasmine": "^3.5.0",
+    "mysql": "^2.18.1",
+    "peer": "^0.5.2",
+    "socket.io": "^2.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "jasmine"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flagstone78/RPi-RTDS.git"
+  },
+  "author": "Alan Mathias",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/flagstone78/RPi-RTDS/issues"
+  },
+  "homepage": "https://github.com/flagstone78/RPi-RTDS#readme"
+}

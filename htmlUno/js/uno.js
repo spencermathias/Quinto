@@ -60,7 +60,7 @@ $('#submit').click(function(){
 document.getElementById('title').style.color = '#ff0000'
 function titleFunction(){
 	let title = document.getElementById('title')
-	if (title.style.color == 'rgb(255, 0, 0)'){
+	if ( title.style.color == 'rgb(255, 0, 0)' ){
 		title.style.color = '#00ff00';
 		socket.emit('ready', {ready: true});
 	} else {
@@ -237,7 +237,7 @@ class Card extends Button{
 var tilesSelected = 0;
 
 function MoveTile(){
-	/*if(selected != undefined){ //switch
+	if(selected != undefined){ //switch
 		console.log("switch", selected.tileData, this.tileData);
 		if(selected.tileData != undefined){
 		var tempNumber = selected.tileData.number;
@@ -251,7 +251,7 @@ function MoveTile(){
 		}
 	} else { //select
 		selected = this;
-	}*/
+	}
 }
 		
 		updatePlayValidity();

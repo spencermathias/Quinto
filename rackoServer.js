@@ -8,7 +8,7 @@ var http = require("http");
 var io = require("socket.io");
 var shared = require('./htmlRacko/js/shared.js'); //get shared functions
 var cardOnTop = [];
-var cardsInPile = [];
+var cardsInFaceUpPile = [];
 var cardPlayedOnTopOf = [];
 var pile = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60];
 //const spawn = require("child_process").spawn;
@@ -54,7 +54,7 @@ var readyTitleColor = "#00ff00";
 var notReadyTitleColor = "#ff0000";
 var spectatorColor = "#444444";
 var notYourTurnColor = "#ffffff";
-//var yourTurnColor = "#0000ff";
+var yourTurnColor = "#0000ff";
 
 
 console.log("Server Started!");
@@ -155,7 +155,7 @@ io.sockets.on("connection", function(socket) {
 
     socket.on("ready", function(ready) {
         if (gameStatus === gameMode.LOBBY){
-            socket.userData.ready = ready.ready;
+            socket.userData.ready = ready;
 			if (socket.userData.ready === true) {
 				socket.userData.statusColor = readyColor;
 				updateBoard(socket, readyTitleColor , false);
@@ -163,11 +163,13 @@ io.sockets.on("connection", function(socket) {
 				socket.userData.statusColor = notReadyColor;
 				updateBoard(socket, notReadyTitleColor , false);
 			}
-			console.log(__line,"" + socket.userData.userName + " is ready: " + ready.ready);
+			console.log(__line,"" + socket.userData.userName + " is ready: " + ready);
             updateUsers();
             checkStart();
         }
     });
+	
+	
 	
 	/*socket.on('submitedBidTiles',function(tileNumbers){
 		//makes sure people actily have those cards
@@ -242,9 +244,28 @@ io.sockets.on("connection", function(socket) {
 			newRound(socket,add);
 		}
 	});*/
-	//cardsWaitingTrade = [];
-	//socket.on('switchCards', function (number){
-		
+	
+	socket.on('get from face down',()=> {
+		//TODO: show the face down card
+		var x = Math.floor(Math.random * pile.length);
+		cardsInFaceUpPile.push(x);
+		pile.splice();
+	});
+	
+	socket.on('submit pushed',function(){
+		cheakWin(socket.userData);
+	});
+	
+	socket.on('switch with deack',function(number,slotNum){
+		if( players[currentTurn%players.length].id === socket.id ){
+			cardsInFaceUpPile.push(socket.userData.tiles[number]);
+			socket.userData.tiles.splice(slotNum,0,1,[cardsInFaceUpPile.length - 1]);
+			socket.emit('new data',cardsInFaceUpPile[0],socket.userData.tiles[slotNum]);
+		}else{
+			message(socket,'its not your turn',gameErrorColor);
+			
+		}
+	});
 });
 
 function shuffleAndDeel(fromArayy,toArayy){
@@ -254,48 +275,41 @@ function shuffleAndDeel(fromArayy,toArayy){
 	fromArayy.splice(y,1)
 }
 
-function newRound(socket,add){
-	console.log(__line,'user check',socket !== undefined);
-	message(io.sockets, "A NEW ROUND HAS STARTED", gameColor);
-	
-	updateBoard(io.sockets, readyTitleColor, true);
-	console.log(__line,'p',players.length);
-	//console.log(__line, "cards", pile) ;
-	//console.log(__line, "cards", tiles);
-	players.forEach(function (player){
-		dealTiles(player,pile,10);
-	});
-	sendTilesToAllPlayers(players);
-	//console.log(__line, "cards", tiles);
-	//console.log(__line, "allTiles", allTiles);
-	updateUsers();
-}
 
-function cheakWin(tilesToCheak){
-	deck = new Deck( shared.cardDes);
-	cardCount = {};
-	shared.cardDes.products.forEach((i)=>{
-		cardCount[i.name] = {card:i,count:0};
-	});
-	
-	tilesToCheak.forEach((i)=>{
-		var cardProp = deck.getProperties(i);
-		console.log(__line,i,cardProp);
-		if (cardProp.products != undefined){
-			cardCount[cardProp.products.name].count++;
+
+
+function cheakWin(playerToCheak){
+	if(players[currentTurn].userData == playerToCheak){
+		var tilesCorect = 0;
+		let playersTiles = playerToCheak.tiles;
+		for(let i = 0,i < playersTiles.length - 1,i++){
+			if(playersTiles[i] < playersTiles[i + 1]){
+				tilesCorect++;
+			}else{
+				message(socket,'your tiles arnt in order, to win the game all your tiles must be in order from least to gratest',gameErrorColor);
+				break;
+			}
 		}
-	});
-	console.log(__line,'cardCount',cardCount);
-	var add = 0;
-	Object.keys(cardCount).forEach((i)=>{
-		console.log(__line,cardCount[i]);
-		console.log(__line,cardCount[i].count);
-		if (cardCount[i].count>=9){
-			console.log(__line,'should be in there',cardCount[i].card.value);
-			add = cardCount[i].card.value;
+		var runs = 0;
+
+		if(tilesCorect == playersTiles.length - 1){
+			for(let a = 0,a < playersTiles.length - 2,a++){
+				if(playersTiles[a] + 1 == playersTiles[a + 1]){
+					if(playersTiles[a] + 2 = playersTiles[a + 2]){
+						
+						runs++;
+					
+					}
+				}
+			}
+			
+			if(runs > 0){
+				actilyGameEnd(playerToCheak.userData.userName);
+			}else{
+				message(socket,'To win the game you must have at least one run of 3',gameErrorColor);
+			}
 		}
-	});
-	return add;
+	}
 }
 
 function checkCardOwner(socket,tileNumbers){
@@ -365,7 +379,7 @@ function updateBoard(socketSend, titleColor, showBoard) { //switches between tit
 }
 
 function checkStart() {	
-    if( gameStatus === gameMode.LOBBY) {
+    if(gameStatus === gameMode.LOBBY) {
         var readyCount = 0;
         allClients.forEach(function(client) {
             if( client.userData.ready ) {
@@ -396,9 +410,21 @@ function gameStart() {
 			players.push(client);
 		} else {
 			client.userData.statusColor = spectatorColor;
+			spectators.push(client);
 		}
 	});
-	newRound(undefined,undefined);
+	
+	updateBoard(io.sockets, readyTitleColor, true);
+	console.log(__line,'p',players.length);
+	//console.log(__line, "cards", pile) ;
+	//console.log(__line, "cards", tiles);
+	players.forEach(function (player){
+		dealTiles(player,pile,10);
+	});
+	sendTilesToAllPlayers(players);
+	//console.log(__line, "cards", tiles);
+	//console.log(__line, "allTiles", allTiles);
+	updateUsers();
 
 	//wait for turn plays
 	io.emit('startGame');

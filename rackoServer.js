@@ -249,7 +249,6 @@ io.sockets.on("connection", function(socket) {
 		//TODO: show the face down card
 		var x = Math.floor(Math.random * pile.length);
 		cardsInFaceUpPile.push(x);
-		pile.splice();
 	});
 	
 	socket.on('submit pushed',function(){
@@ -261,6 +260,7 @@ io.sockets.on("connection", function(socket) {
 			cardsInFaceUpPile.push(socket.userData.tiles[number]);
 			socket.userData.tiles.splice(slotNum,0,1,[cardsInFaceUpPile.length - 1]);
 			socket.emit('new data',cardsInFaceUpPile[0],socket.userData.tiles[slotNum]);
+			newTurn();
 		}else{
 			message(socket,'its not your turn',gameErrorColor);
 			
@@ -386,7 +386,7 @@ function checkStart() {
                 readyCount++;
             }
         });
-        if(readyCount == allClients.length && readyCount >= minPlayers) {
+        if(readyCount == allClients.length && readyCount >= minPlayers && readyCount <= maxPlayers) {
             gameStart();
         }
     }
@@ -413,6 +413,9 @@ function gameStart() {
 			spectators.push(client);
 		}
 	});
+	var y = Math.floor(Math.random * pile.length);
+	cardsInFaceUpPile.push(y);
+	socket.emit('new data',y,undefined);
 	
 	updateBoard(io.sockets, readyTitleColor, true);
 	console.log(__line,'p',players.length);
@@ -512,6 +515,13 @@ function playersHaveTiles(){ //to check end conditions
 		}
 	}
 	return have;
+}
+
+function nextTurn(){
+	currentTurn = (currentTurn + 1) % players.length;
+	console.log("It is " + players[currentTurn].userData.userName + "'s turn!")
+	message(players[currentTurn], "It is your turn!", gameColor);
+	socket.emit('next turn',currentTurn);
 }
 
 function allSkipped(){

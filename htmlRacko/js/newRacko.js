@@ -128,7 +128,7 @@ class Button {
 }
 
 class Card extends Button{
-	constructor(x,y,text){
+	constructor(x,y,text,slotNum){
 		let width = undefined;
 		let height = undefined;
 		if (canvas.width/canvas.height > 1.25){
@@ -165,7 +165,8 @@ class Card extends Button{
 	}
 	click(){
 		console.log(this);
-		socket.emit('switch with deack',this.text);
+		let x = myTilesThatISomtimesLove.indexOf(this.text);
+		socket.emit('switch with deack',this.text,x);
 	}
 }
 
@@ -176,7 +177,6 @@ class SubmitButton extends Button{
 	click(){
 		//TODO:check if it is your turn or not
 		if(myTurn){
-			socket.emit('submit pushed');
 			socket.emit('submit pushed');
 		}
 	}
@@ -213,6 +213,7 @@ var myUserlistString = "";
 var userList = [];
 //sockets stuff
 var socket = io(publicAddress);
+var cardsDiscarded = [];
 
 
 
@@ -283,6 +284,22 @@ socket.on('tiles', function(tiles){
 	//resizeDrawings();
 	console.log('tiles updated: ', myTiles);
 });
+
+socket.on('new data',function(cardYouSee,yourCard){
+	if(cardYouSee != undefined){
+		cardsDiscarded.push(cardYouSee);
+	}
+	if(yourCard != undefined){
+		myTilesThatISomtimesLove.push(yourCard);
+	}
+});
+
+socket.on('next turn',function(currentTurn){
+	if(currentTurn == userData.userName){
+		pickFromPile.visible = true;
+	}
+});
+
 for (var i = 0;i < 10;i++){
 	var card = new Card(
 		canvas.width,
@@ -291,9 +308,10 @@ for (var i = 0;i < 10;i++){
 		tileHeight,
 		myTilesThatISomtimesLove[i],
 		newTileColor,'#000000','#000000','#000000',
-		20,false
+		20,false,
+		myTilesThatISomtimesLove.indexOf(text) + 1
 	);
-	myTilesThatISomtimesLove.push(tile);
+	myTilesThatISomtimesLove.push(card);
 }
 
 //functions

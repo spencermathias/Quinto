@@ -77,7 +77,7 @@ var deck = [...Array (61).keys()];
 deck.shift();//remove 0
 //classes
 class Button {
-	constructor(x, y, width, height, text = "button", fillColor, outlineColor, textColor, textOutlineColor, fontSize = 50, textSlant = false){
+	constructor(x, y, width, height, text = 'button', fillColor, outlineColor, textColor, textOutlineColor, fontSize = 50, textSlant = false){
 		this.updateSize(x,y,width,height);
 		this.fillColor = fillColor;
 		this.outlineColor = outlineColor;
@@ -139,7 +139,7 @@ class Card extends Button{
 			height = width/1.3;
 		}
 		
-		super(x,y,width,height,text,'White','Black','Black',undefined,50,false)
+		super(x,y,width,height,'White','Black','Black',undefined,20,false);
 		this.visible = true;
 	}
 	draw(ctx){
@@ -160,6 +160,9 @@ class Card extends Button{
 			if(this.textOutline != undefined){
 				ctx.strokeText(this.text, 0, 0);
 			}
+			if(this.slotNum != undefined){
+				ctx.fillText(slotNum,this.width + 20,0);
+			}
 			ctx.restore();
 		}
 	}
@@ -172,7 +175,7 @@ class Card extends Button{
 
 class SubmitButton extends Button{
 	constructor(){
-		super(canvas.width/2, canvas.height-80, canvas.width,40,"Finish Game",'#0000ff',undefined,'#ffffff',undefined,tileFontSize,false);
+		super(canvas.width/2, canvas.height-80, canvas.width,40,"Finish Game",'#0000ff',undefined,'#ffffff',undefined,20,false);
 	}
 	click(){
 		//TODO:check if it is your turn or not
@@ -193,7 +196,7 @@ class PickFromPile extends Button{
 			let width = Math.min(canvas.width/2.5,canvas.height * 1.2 / 10);
 			let height = width/1.3;
 		}
-		super(x,y,width,height,text,'White','Black','Black',undefined,50,false)
+		super(x,y,width,height,text,'White','Black','Black',undefined,20,false)
 		this.visible = true;
 	}
 	
@@ -206,16 +209,21 @@ var submitButton = new SubmitButton();
 var pickFromPile = new PickFromPile();
 var myTilesThatISomtimesLove = [];
 var shapes = [[],[],[]];
-var userList = [];
 var myTurn = false;
 var myUserlistIndex = 0;
 var myUserlistString = "";
 var userList = [];
-//sockets stuff
 var socket = io(publicAddress);
 var cardsDiscarded = [];
-
-
+var spectatorColor = "#444444";
+var yourTurnColor = "#0000ff";
+var newTileColor = "Chocolate";
+var placeholderColor = '#444444';
+var validPlayColor = '#00ff00';
+var invalidPlayColor = '#ff0000';
+var defaultTileColor = '#ffe0b3';
+var newServerTileColor = '#aae0b3';
+//sockets stuff
 
 socket.on('connect', function(){
 	//get userName
@@ -270,12 +278,12 @@ socket.on('userList',function(data){
 	console.table(data);
 });
 
-socket.on('tiles', function(tiles){
+/*socket.on('tiles', function(tiles){
 	serverTiles = tiles;
 	
 	for(var i = 0; i < tiles.length; i++){
-		if (i < myTiles.length){
-			myTiles[i].updateNumberAndText(tiles[i]);
+		if (i < myTilesThatISomtimesLove.length){
+			myTilesThatISomtimesLove[i];
 			//make list of tiles
 		}
 		
@@ -283,7 +291,7 @@ socket.on('tiles', function(tiles){
 	
 	//resizeDrawings();
 	console.log('tiles updated: ', myTiles);
-});
+});*/
 
 socket.on('new data',function(cardYouSee,yourCard){
 	if(cardYouSee != undefined){
@@ -292,28 +300,30 @@ socket.on('new data',function(cardYouSee,yourCard){
 	if(yourCard != undefined){
 		myTilesThatISomtimesLove.push(yourCard);
 	}
+	console.table(myTilesThatISomtimesLove);
+	console.table(cardsDiscarded);
+	console.log('got new data');
 });
 
 socket.on('next turn',function(currentTurn){
-	if(currentTurn == userData.userName){
+	if(myTurn){
 		pickFromPile.visible = true;
 	}
 });
 
 for (var i = 0;i < 10;i++){
 	var card = new Card(
-		canvas.width,
+		canvas.width / 2,
 		((canvas.height)/2)/i,
-		tileWidth,
-		tileHeight,
-		myTilesThatISomtimesLove[i],
-		newTileColor,'#000000','#000000','#000000',
-		20,false,
-		myTilesThatISomtimesLove.indexOf(text) + 1
+		34,
+		myTilesThatISomtimesLove.indexOf(this.text) + 1
 	);
 	myTilesThatISomtimesLove.push(card);
 }
 
+var tileDiscarded = new Card(canvas.width/4,canvas.width/2,cardsDiscarded[0],undefined);
+var pickFromPile = new PickFromPile(canvas.width/3,canvas.width/2,'take face down');
+tileDiscarded.visible = true;
 //functions
 
 function resizeCanvas(){
@@ -332,8 +342,8 @@ function resizeDrawings(){
 	board.rowThickness = tileHeight + 2*tilePadding;
 	board.columnThickness = tileWidth + 2*tilePadding;*/
 	
-	for(var i = 0; i < myTiles.length; i++){
-		myTiles[i].updateSize((canvas.width/2) + (tileWidth + 20) * (i-(myTiles.length/2)+0.5) , canvas.height - (tileHeight + 20), tileHeight, tileWidth);
+	for(var i = 0; i < myTilesThatISomtimesLove.length; i++){
+		myTilesThatISomtimesLove[i].updateSize((canvas.width/2) + (tileWidth + 20) * (i-(myTilesThatISomtimesLove.length/2)+0.5) , canvas.height - (tileHeight + 20), tileHeight, tileWidth);
 	}
 	submitButton.updateSize(canvas.width/2, canvas.height-tileHeight-80, canvas.width, tileHeight);
 }
@@ -382,7 +392,7 @@ function draw(){
 	shapes[0].push(submitButton);
 	shapes[0].push(pickFromPile);
 	//player tiles
-	for(var i = 0; i < myTiles.length; i++){
+	for(var i = 0; i < myTilesThatISomtimesLove.length; i++){
 		//if(myTurn){
 		/*if(scoreIsValid){
 			myTiles[i].drawOutline(validPlayColor);
@@ -391,7 +401,9 @@ function draw(){
 		}*/
 		 //else {
 		//	myTiles[i].drawOutline('#444444'); //placeholder outline
-		shapes[0].push( myTiles[i] );//1st layer
+		shapes[0].push( myTilesThatISomtimesLove[i] );//1st layer
+		shapes[0].push( tileDiscarded );
+		shapes[0].push( pickFromPile );
 	}
 	//selected outline
 	

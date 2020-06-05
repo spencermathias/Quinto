@@ -55,6 +55,7 @@ var notReadyTitleColor = "#ff0000";
 var spectatorColor = "#444444";
 var notYourTurnColor = "#ffffff";
 var yourTurnColor = "#0000ff";
+var currentTurn = Math.floor(Math.random()*players.length); //random starting person
 
 
 console.log("Server Started!");
@@ -247,8 +248,16 @@ io.sockets.on("connection", function(socket) {
 	
 	socket.on('get from face down',()=> {
 		//TODO: show the face down card
+		if(pile.length == 0){
+			for(var x = 1;x < cardsInFaceUpPile.length - 1;x++){
+				pile.push(cardsInFaceUpPile[x]);
+				cardsInFaceUpPile.splice(x,1);
+			}
+		}
 		var x = Math.floor(Math.random * pile.length);
 		cardsInFaceUpPile.push(x);
+		socket.emit('new data',x,undefined);
+		console.log('switched the cards');
 	});
 	
 	socket.on('submit pushed',function(){
@@ -260,11 +269,12 @@ io.sockets.on("connection", function(socket) {
 			cardsInFaceUpPile.push(socket.userData.tiles[number]);
 			socket.userData.tiles.splice(slotNum,0,1,[cardsInFaceUpPile.length - 1]);
 			socket.emit('new data',cardsInFaceUpPile[0],socket.userData.tiles[slotNum]);
-			newTurn();
+			nextTurn();
 		}else{
 			message(socket,'its not your turn',gameErrorColor);
 			
 		}
+		console.log('you clicked the tile');
 	});
 });
 
@@ -282,7 +292,7 @@ function cheakWin(playerToCheak){
 	if(players[currentTurn].userData == playerToCheak){
 		var tilesCorect = 0;
 		let playersTiles = playerToCheak.tiles;
-		for(let i = 0,i < playersTiles.length - 1,i++){
+		for(var i = 0; i < playersTiles.length - 1;i++){
 			if(playersTiles[i] < playersTiles[i + 1]){
 				tilesCorect++;
 			}else{
@@ -293,9 +303,9 @@ function cheakWin(playerToCheak){
 		var runs = 0;
 
 		if(tilesCorect == playersTiles.length - 1){
-			for(let a = 0,a < playersTiles.length - 2,a++){
+			for(let a = 0;a < playersTiles.length - 2;a++){
 				if(playersTiles[a] + 1 == playersTiles[a + 1]){
-					if(playersTiles[a] + 2 = playersTiles[a + 2]){
+					if(playersTiles[a] + 2 == playersTiles[a + 2]){
 						
 						runs++;
 					
@@ -401,7 +411,7 @@ function gameStart() {
 	//reset players
 	players = [];
 	spectators = [];
-	allClients.forEach(function(client){ 
+	allClients.forEach(function(client){
 		if(client.userData.ready){
 			client.userData.statusColor = notYourTurnColor;
 			client.userData.tiles = [];
@@ -413,14 +423,11 @@ function gameStart() {
 			spectators.push(client);
 		}
 	});
-	var y = Math.floor(Math.random * pile.length);
-	cardsInFaceUpPile.push(y);
-	socket.emit('new data',y,undefined);
-	
+
 	updateBoard(io.sockets, readyTitleColor, true);
 	console.log(__line,'p',players.length);
 	//console.log(__line, "cards", pile) ;
-	//console.log(__line, "cards", tiles);
+	//console.log(__line, "cards",players[0].userdata.tiles);
 	players.forEach(function (player){
 		dealTiles(player,pile,10);
 	});
@@ -465,6 +472,7 @@ function dealSingleTile(player,carddeck){
 	player.userData.tiles.push(x);
 	y = pile.indexOf(x);
 	pile.splice(y,1)
+	io.sockets.emit('new data',undefined,x);
 }
 
 //removes a element from deck array and gives it to the players user data array
@@ -521,7 +529,7 @@ function nextTurn(){
 	currentTurn = (currentTurn + 1) % players.length;
 	console.log("It is " + players[currentTurn].userData.userName + "'s turn!")
 	message(players[currentTurn], "It is your turn!", gameColor);
-	socket.emit('next turn',currentTurn);
+	io.sockets.emit('next turn',currentTurn);
 }
 
 function allSkipped(){

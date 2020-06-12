@@ -77,7 +77,7 @@ var deck = [...Array (61).keys()];
 deck.shift();//remove 0
 //classes
 class Button {
-	constructor(x, y, width, height, text = 'button', fillColor, outlineColor, textColor, textOutlineColor, fontSize = 50, textSlant = false){
+	constructor(x, y, width, height, text = "button", fillColor, outlineColor, textColor, textOutlineColor, fontSize = 50, textSlant = false){
 		this.updateSize(x,y,width,height);
 		this.fillColor = fillColor;
 		this.outlineColor = outlineColor;
@@ -128,7 +128,7 @@ class Button {
 }
 
 class Card extends Button{
-	constructor(xpercent,ypercent,text){
+	constructor(x,y,text,slotNum){
 		let width = undefined;
 		let height = undefined;
 		if (canvas.width/canvas.height > 1.25){
@@ -138,9 +138,8 @@ class Card extends Button{
 			width = Math.min(canvas.width/2.5,canvas.height * 1.2 / 10);
 			height = width/1.3;
 		}
-		let x = xpercent * (canvas.width - width)/100 + width/2;
-		let y = ypercent * (canvas.height - height)/100 + height/2;
-		super(x,y,width,height,text,'White','Black','Black','White',20,false);
+		
+		super(width,height,'White','Black','Black',undefined,20,false);
 		this.visible = true;
 	}
 	draw(ctx){
@@ -197,7 +196,7 @@ class PickFromPile extends Button{
 			let width = Math.min(canvas.width/2.5,canvas.height * 1.2 / 10);
 			let height = width/1.3;
 		}
-		super(x,y,width,height,text,'White','Black','Black',undefined,20,false)
+		super(x,y,width,height,text,'White','Black','Black',undefined,50,false)
 		this.visible = true;
 	}
 	
@@ -211,12 +210,11 @@ var pickFromPile = new PickFromPile();
 var myTilesThatISomtimesLove = [];
 var shapes = [[],[],[]];
 var myTurn = false;
-var userList = [];
-var myUserName = undefined;
 var myUserlistIndex = 0;
 var myUserlistString = "";
+var userList = [];
 var socket = io(publicAddress);
-var tilesDiscarded = undefined;
+var cardsDiscarded = [];
 var spectatorColor = "#444444";
 var yourTurnColor = "#0000ff";
 var newTileColor = "Chocolate";
@@ -295,22 +293,15 @@ socket.on('userList',function(data){
 	console.log('tiles updated: ', myTiles);
 });*/
 
-socket.on('cards',function(cardYouSee,yourCards){
-	myTilesThatISomtimesLove = [];
-	for (var i = 0;i < yourCards.length;i++){
-		var card = new Card(
-			50,
-			100/yourCards.length * i, 
-			yourCards[i]
-		);
-		myTilesThatISomtimesLove.push(card);
-	}
+socket.on('new data',function(cardYouSee,yourCard){
 	if(cardYouSee != undefined){
-		tilesDiscarded = new Card(25,50,cardYouSee);
+		cardsDiscarded.push(cardYouSee);
+	}
+	if(yourCard != undefined){
+		myTilesThatISomtimesLove.push(yourCard);
 	}
 	console.table(myTilesThatISomtimesLove);
-	console.table(tilesDiscarded);
-	console.log('got new data');
+	console.table(cardsDiscarded);
 });
 
 socket.on('next turn',function(currentTurn){
@@ -319,10 +310,18 @@ socket.on('next turn',function(currentTurn){
 	}
 });
 
+for (var i = 0;i < 10;i++){
+	var card = new Card(
+		canvas.width / 2,
+		((canvas.height)/2)/i,
+		myTilesThatISomtimesLove[i],
+		myTilesThatISomtimesLove.indexOf(this.text) + 1
+	);
+	myTilesThatISomtimesLove.push(card);
+}
 
-
-
-var pickFromPile = new PickFromPile(canvas.width/3,canvas.width/2,'take face down');
+var tileDiscarded = new Card(canvas.width/4,canvas.width/2,cardsDiscarded[0],undefined);
+tileDiscarded.visible = true;
 //functions
 
 function resizeCanvas(){
@@ -390,9 +389,6 @@ function draw(){
 	//var radius = (Math.min(canvas.width, canvas.height-140)/2)-50;
 	shapes[0].push(submitButton);
 	shapes[0].push(pickFromPile);
-	if (tilesDiscarded != undefined){
-		shapes[0].push(tilesDiscarded);
-	}
 	//player tiles
 	for(var i = 0; i < myTilesThatISomtimesLove.length; i++){
 		//if(myTurn){
@@ -404,9 +400,8 @@ function draw(){
 		 //else {
 		//	myTiles[i].drawOutline('#444444'); //placeholder outline
 		shapes[0].push( myTilesThatISomtimesLove[i] );//1st layer
-		
+		shapes[0].push( tileDiscarded );
 	}
-	
 	//selected outline
 	
 	//draw cards

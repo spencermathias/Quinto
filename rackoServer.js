@@ -256,7 +256,7 @@ io.sockets.on("connection", function(socket) {
 		}
 		var x = Math.floor(Math.random * pile.length);
 		cardsInFaceUpPile.push(x);
-		socket.emit('new data',x,undefined);
+		socket.emit('cards',x,socket.userData.tiles);
 		console.log('switched the cards');
 	});
 	
@@ -268,7 +268,7 @@ io.sockets.on("connection", function(socket) {
 		if( players[currentTurn%players.length].id === socket.id ){
 			cardsInFaceUpPile.push(socket.userData.tiles[number]);
 			socket.userData.tiles.splice(slotNum,0,1,[cardsInFaceUpPile.length - 1]);
-			socket.emit('new data',cardsInFaceUpPile[0],socket.userData.tiles[slotNum]);
+			socket.emit('cards',cardsInFaceUpPile[0],socket.userData.tiles);
 			nextTurn();
 		}else{
 			message(socket,'its not your turn',gameErrorColor);
@@ -364,8 +364,7 @@ function updateUsers(target = io.sockets){
 		});
 	}
     console.log(__line,"----------------Done Sending List----------------");
-	
-	io.sockets.emit('userList', userList);
+	target.emit('userList',userList);
 }
 
 function getUserSendData(client){
@@ -411,6 +410,7 @@ function gameStart() {
 	//reset players
 	players = [];
 	spectators = [];
+	cardsInFaceUpPile.push(dealSingleTile(pile));
 	allClients.forEach(function(client){
 		if(client.userData.ready){
 			client.userData.statusColor = notYourTurnColor;
@@ -418,12 +418,13 @@ function gameStart() {
 			client.userData.score = 0;
 			client.userData.skippedTurn = false;
 			players.push(client);
+			client.emit('cards',cardsInFaceUpPile[0],client.userData.tiles);
 		} else {
 			client.userData.statusColor = spectatorColor;
 			spectators.push(client);
 		}
 	});
-
+	
 	updateBoard(io.sockets, readyTitleColor, true);
 	console.log(__line,'p',players.length);
 	//console.log(__line, "cards", pile) ;
@@ -431,13 +432,14 @@ function gameStart() {
 	players.forEach(function (player){
 		dealTiles(player,pile,10);
 	});
-	sendTilesToAllPlayers(players);
+	//sendTilesToAllPlayers(players); cheack
 	//console.log(__line, "cards", tiles);
 	//console.log(__line, "allTiles", allTiles);
 	updateUsers();
 
 	//wait for turn plays
 	io.emit('startGame');
+	
 }
 
 function sendBoardState(){
@@ -462,17 +464,14 @@ function dealTiles(player, carddeck, amountToBeDelt) {
 	var tileToGive;
 	var i;
 	for( i = 0; i < amountToBeDelt; i+=1) {
-		dealSingleTile(player, carddeck);
+		player.userData.tiles.push(dealSingleTile(carddeck));
 	}
 }
 
 //deals a single tile
-function dealSingleTile(player,carddeck){
-	x = Math.floor(Math.random * pile.length);
-	player.userData.tiles.push(x);
-	y = pile.indexOf(x);
-	pile.splice(y,1)
-	io.sockets.emit('new data',undefined,x);
+function dealSingleTile(carddeck){
+	x = Math.floor(Math.random() * pile.length);
+	return pile.splice(x,1).pop();
 }
 
 //removes a element from deck array and gives it to the players user data array
@@ -529,7 +528,7 @@ function nextTurn(){
 	currentTurn = (currentTurn + 1) % players.length;
 	console.log("It is " + players[currentTurn].userData.userName + "'s turn!")
 	message(players[currentTurn], "It is your turn!", gameColor);
-	io.sockets.emit('next turn',currentTurn);
+	io.sockets.emit('next turn',currentTurn.userData.userName);
 }
 
 function allSkipped(){

@@ -10,7 +10,8 @@ var shared = require('./htmlRacko/js/shared.js'); //get shared functions
 var cardOnTop = [];
 var cardsInFaceUpPile = [];
 var cardPlayedOnTopOf = [];
-var pile = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60];
+var pile = [];
+
 //const spawn = require("child_process").spawn;
 
 var app = express();
@@ -55,17 +56,19 @@ var notReadyTitleColor = "#ff0000";
 var spectatorColor = "#444444";
 var notYourTurnColor = "#ffffff";
 var yourTurnColor = "#0000ff";
-var currentTurn = Math.floor(Math.random()*players.length); //random starting person
+var currentTurn = 0;
 
 
 console.log("Server Started!");
 
 function defaultUserData(){
 	return {
+		//score: 0,
 		userName: "Unknown",
 		tiles: [],
 		statusColor: notReadyColor,
 		ready: false,
+		alreadyPicked: false
 	}
 }
 
@@ -246,34 +249,44 @@ io.sockets.on("connection", function(socket) {
 		}
 	});*/
 	
+	
+	
+	socket.on('discard face down',function (){
+		nextTurn();
+	});
 	socket.on('get from face down',()=> {
-		//TODO: show the face down card
-		if(pile.length == 0){
-			for(var x = 1;x < cardsInFaceUpPile.length - 1;x++){
-				pile.push(cardsInFaceUpPile[x]);
-				cardsInFaceUpPile.splice(x,1);
+		if(socket.userData.alreadyPicked){
+			message(socket,'you have already tooken a face down card',gameErrorColor);
+		}else{
+			socket.userData.alreadyPicked = true;
+			//TODO: show the face down card
+			if(pile.length == 0){
+				for(var x = 1;x < cardsInFaceUpPile.length - 1;x++){
+					pile.push(cardsInFaceUpPile[x]);
+					cardsInFaceUpPile.splice(x,1);
+				}
+			}
+			if( players[currentTurn%players.length].id === socket.id ){
+				var x = Math.floor(Math.random * pile.length);
+				cardsInFaceUpPile.push(dealSingleTile(pile));
+				pile.splice(x,1);
+				socket.emit('cards',cardsInFaceUpPile[cardsInFaceUpPile.length - 1],socket.userData.tiles);
+				console.log('switched the cards',pile,cardsInFaceUpPile);
+				socket.emit('discard');
 			}
 		}
-		var x = Math.floor(Math.random * pile.length);
-		cardsInFaceUpPile.push(x);
-		socket.emit('cards',x,socket.userData.tiles);
-		console.log('switched the cards');
 	});
 	
 	socket.on('submit pushed',function(){
-		cheakWin(socket.userData);
+		cheakWin(socket);
 	});
 	
-	socket.on('switch with deack',function(number,slotNum){
-		if( players[currentTurn%players.length].id === socket.id ){
-			cardsInFaceUpPile.push(socket.userData.tiles[number]);
-			socket.userData.tiles.splice(slotNum,0,1,[cardsInFaceUpPile.length - 1]);
-			socket.emit('cards',cardsInFaceUpPile[0],socket.userData.tiles);
-			nextTurn();
-		}else{
-			message(socket,'its not your turn',gameErrorColor);
-			
-		}
+	socket.on('switch with deack',function(number){
+		let x = socket.userData.tiles.indexOf(number);
+		socket.userData.tiles.splice(x,1,cardsInFaceUpPile.pop());
+		cardsInFaceUpPile.push(number);
+		socket.emit('cards',cardsInFaceUpPile[cardsInFaceUpPile.length - 1],socket.userData.tiles);
+		nextTurn();
 		console.log('you clicked the tile');
 	});
 });
@@ -289,14 +302,15 @@ function shuffleAndDeel(fromArayy,toArayy){
 
 
 function cheakWin(playerToCheak){
-	if(players[currentTurn].userData == playerToCheak){
+	if(players[currentTurn].id == playerToCheak.id){
 		var tilesCorect = 0;
-		let playersTiles = playerToCheak.tiles;
+		console.log(__line,playerToCheak.userData);
+		let playersTiles = playerToCheak.userData.tiles;
 		for(var i = 0; i < playersTiles.length - 1;i++){
 			if(playersTiles[i] < playersTiles[i + 1]){
 				tilesCorect++;
 			}else{
-				message(socket,'your tiles arnt in order, to win the game all your tiles must be in order from least to gratest',gameErrorColor);
+				message(playerToCheak,'your tiles arnt in order, to win the game all your tiles must be in order from least to gratest',gameErrorColor);
 				break;
 			}
 		}
@@ -345,6 +359,7 @@ function message(socket, message, color){
 		data: "" + message,
 		color: color
 	};
+	console.log(socket,message,color);
 	socket.emit('message',JSON.stringify(messageObj));
 }
 
@@ -357,6 +372,7 @@ function updateUsers(target = io.sockets){
 		});
 	} else {
 		players.forEach(function(client){
+			client.userData.statusColor = (client.id == players[currentTurn].id)? yourTurnColor:notYourTurnColor
 			userList.push(getUserSendData(client));
 		});
 		spectators.forEach(function(client){
@@ -368,12 +384,13 @@ function updateUsers(target = io.sockets){
 }
 
 function getUserSendData(client){
-	console.log(__line,"userName:", client.userData.userName, " |ready:", client.userData.ready, "|status:", client.userData.statusColor, "|score:", client.userData.score);
+	console.log(__line,"userName:", client.userData.userName, " |ready:", client.userData.ready, "|status:", client.userData.statusColor)//, "|score:", client.userData.score);
 	return{
+		cardsInFaceUpPile: cardsInFaceUpPile[cardsInFaceUpPile.length - 1],
 		id: client.id,
 		userName: client.userData.userName,
 		color: client.userData.statusColor,
-		score: client.userData.score,
+		//score: client.userData.score,
 		ready: client.userData.ready,
 	};
 }
@@ -410,7 +427,9 @@ function gameStart() {
 	//reset players
 	players = [];
 	spectators = [];
+	pile = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60];
 	cardsInFaceUpPile.push(dealSingleTile(pile));
+	currentTurn = Math.floor(Math.random()*players.length); //random starting person
 	allClients.forEach(function(client){
 		if(client.userData.ready){
 			client.userData.statusColor = notYourTurnColor;
@@ -418,7 +437,7 @@ function gameStart() {
 			client.userData.score = 0;
 			client.userData.skippedTurn = false;
 			players.push(client);
-			client.emit('cards',cardsInFaceUpPile[0],client.userData.tiles);
+			
 		} else {
 			client.userData.statusColor = spectatorColor;
 			spectators.push(client);
@@ -431,7 +450,9 @@ function gameStart() {
 	//console.log(__line, "cards",players[0].userdata.tiles);
 	players.forEach(function (player){
 		dealTiles(player,pile,10);
+		player.emit('cards',cardsInFaceUpPile[0],player.userData.tiles);
 	});
+	
 	//sendTilesToAllPlayers(players); cheack
 	//console.log(__line, "cards", tiles);
 	//console.log(__line, "allTiles", allTiles);
@@ -525,10 +546,11 @@ function playersHaveTiles(){ //to check end conditions
 }
 
 function nextTurn(){
+	players[currentTurn].userData.alreadyPicked = false;
 	currentTurn = (currentTurn + 1) % players.length;
 	console.log("It is " + players[currentTurn].userData.userName + "'s turn!")
 	message(players[currentTurn], "It is your turn!", gameColor);
-	io.sockets.emit('next turn',currentTurn.userData.userName);
+	updateUsers();
 }
 
 function allSkipped(){

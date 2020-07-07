@@ -129,6 +129,14 @@ class Button {
 
 class Card extends Button{
 	constructor(xpercent,ypercent,text){
+		super(undefined,undefined,undefined,undefined,text,'White','Black','Black','White',20,false);
+		this.xpercent = xpercent;
+		this.ypercent = ypercent;
+		this.updateSize(xpercent,ypercent);
+		this.totalcolors = 3;
+		this.visible = true;
+	}
+	updateSize(xpercent,ypercent){
 		let width = undefined;
 		let height = undefined;
 		if (canvas.width/canvas.height > 1.25){
@@ -140,8 +148,9 @@ class Card extends Button{
 		}
 		let x = xpercent * (canvas.width - width)/100 + width/2;
 		let y = ypercent * (canvas.height - height)/100 + height/2;
-		super(x,y,width,height,text,'White','Black','Black','White',20,false);
-		this.visible = true;
+		console.log(myTilesThatISomtimesLove[myTilesThatISomtimesLove.indexOf(this)]);
+		this.clickArea = {minX: x - width/2, minY: y + 5, maxX: x + width/2, maxY: y + height/2};
+		super.updateSize(x,y,width,height);
 	}
 	draw(ctx){
 		if(this.visible){
@@ -149,34 +158,40 @@ class Card extends Button{
 			ctx.fillStyle = this.fillColor;
 			ctx.strokeStyle = this.outlineColor;
 			roundRect(ctx, this.clickArea.minX, this.clickArea.minY, this.width, this.height, this.width/8, this.fillColor != undefined, this.outlineColor != undefined);
-
 			//draw number
+			if (this.text <= 20){
+				ctx.fillStyle = '#00ff00';
+			}else{
+				if(this.text >= 40){
+					ctx.fillStyle = '#ff0000';
+				}else{
+					ctx.fillStyle = '#ffdf00';
+				}
+			}
 			ctx.font = '' + this.fontSize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
-			ctx.fillStyle = this.textColor;
+			
 			ctx.strokeStyle = this.textOutlineColor;
 			ctx.translate(this.x, this.y);
 			if(this.textColor != undefined){
-				ctx.fillText(this.text,this.width/60*this.text,this.height/10);
+				ctx.fillText(this.text,(this.width - 8)/60*this.text - this.width/2,-(this.height/20 * 7));
 			}
 			if(this.textOutline != undefined){
 				ctx.strokeText(this.text, 0, 0);
-			}
-			if(this.slotNum != undefined){
-				ctx.fillText(slotNum,this.width + 20,0);
 			}
 			ctx.restore();
 		}
 	}
 	click(){
-		console.log(this);
-		let x = myTilesThatISomtimesLove.indexOf(this.text);
-		socket.emit('switch with deack',this.text,x);
+		if(myTurn){
+			console.log(this);
+			socket.emit('switch with deack',this.text);
+		}
 	}
 }
 
 class SubmitButton extends Button{
 	constructor(){
-		super(canvas.width/2, canvas.height-80, canvas.width,40,"Finish Game",'#0000ff',undefined,'#ffffff',undefined,20,false);
+		super(canvas.width/2, canvas.height, canvas.width,40,"Finish Game",'#0000ff',undefined,'#ffffff',undefined,20,false);
 	}
 	click(){
 		//TODO:check if it is your turn or not
@@ -191,23 +206,79 @@ class PickFromPile extends Button{
 		let width = undefined;
 		let height = undefined;
 		if (canvas.width/canvas.height > 1.25){
-			let width = Math.min(canvas.width/3.5,canvas.height * 1.2 / 5);
-			let height = width/1.3;
+			width = Math.min(canvas.width/3.5,canvas.height * 1.2 / 5);
+			height = width/1.3;
 		}else{
-			let width = Math.min(canvas.width/2.5,canvas.height * 1.2 / 10);
-			let height = width/1.3;
+			width = Math.min(canvas.width/2.5,canvas.height * 1.2 / 10);
+			height = width/1.3;
 		}
-		super(x,y,width,height,text,'White','Black','Black',undefined,20,false)
-		this.visible = true;
+		super(x,y,width,height,text,'Blue','Black','Black',undefined,15)
+		this.x = x;
+		this.y = y;
+		this.text = text;
+		this.clickArea = {minX: x - width/2, minY: y - height/2, maxX: x + width/2, maxY: y + height/2};
+		this.selected = false;
+	}
+	
+	draw(){
+		if(this.visible){
+			ctx.save();
+			ctx.fillStyle = this.fillColor;
+			ctx.strokeStyle = this.outlineColor;
+			roundRect(ctx, this.clickArea.minX, this.clickArea.minY, this.width, this.height, this.width/8, this.fillColor != undefined, this.outlineColor != undefined);
+
+			//draw number
+			ctx.font = '' + this.fontSize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
+			ctx.fillStyle = this.textColor;
+			ctx.strokeStyle = this.textOutlineColor;
+			ctx.translate(this.x, this.y);
+			if(this.textSlant){
+				ctx.rotate(Math.atan(this.height/this.width));
+			}
+			if(this.textColor != undefined){
+				ctx.fillText(this.text,0,0);
+			}
+			if(this.textOutline != undefined){
+				ctx.strokeText(this.text, 0, 0);
+			}
+			ctx.restore();
+		}
+	}
+	
+	click(){
+		Discard.visible = !Discard.visible;
+		socket.emit('get from face down');
+		console.log('got inside the loop');
+		this.visible = false;
+	}
+}
+
+class Discard extends Button{
+	constructor(x,y,text){
+		let width = undefined;
+		let height = undefined;
+		if (canvas.width/canvas.height > 1.25){
+			width = Math.min(canvas.width/3.5,canvas.height * 1.2 / 5);
+			height = width/1.3;
+		}else{
+			width = Math.min(canvas.width/2.5,canvas.height * 1.2 / 10);
+			height = width/1.3;
+		}
+		super(x,y,width,height,text,'Blue','Black','Black',undefined,15)
+		this.x = x;
+		this.y = y;
+		this.text = text;
+		this.clickArea = {minX: x - width/2, minY: y - height/2, maxX: x + width/2, maxY: y + height/2};
+		this.visible = false;
 	}
 	
 	click(){
 		this.selected = true;
-		socket.emit('get from face down');
+		socket.emit('discard face down');
 	}
 }
+
 var submitButton = new SubmitButton();
-var pickFromPile = new PickFromPile();
 var myTilesThatISomtimesLove = [];
 var shapes = [[],[],[]];
 var myTurn = false;
@@ -252,7 +323,9 @@ socket.on('showBoard',function(data){
 socket.on('userList',function(data){
 	var userListString = '';
 	userList = data;
+	resizeDrawings();
 	for( var i = 0; i < data.length; i++ ){
+		tilesDiscarded = new Card(75,50,data[i].cardsInFaceUpPile);
 		var header = 'div id="userListDiv'+ i + '"';
 		var click = 'onclick="changeName(' + "'" + data[i].id + "'" + ')"';
 		var color = ' style="color: ' + data[i].color + ';"'
@@ -278,6 +351,9 @@ socket.on('userList',function(data){
 	}
 	document.getElementById('userlist').innerHTML = userListString;
 	console.table(data);
+	if(myTurn){
+		pickFromPile.visible = true;
+	}
 });
 
 /*socket.on('tiles', function(tiles){
@@ -304,25 +380,37 @@ socket.on('cards',function(cardYouSee,yourCards){
 			yourCards[i]
 		);
 		myTilesThatISomtimesLove.push(card);
+		card.visible = true;
 	}
 	if(cardYouSee != undefined){
-		tilesDiscarded = new Card(25,50,cardYouSee);
+		tilesDiscarded = new Card(75,50,cardYouSee);
 	}
 	console.table(myTilesThatISomtimesLove);
 	console.table(tilesDiscarded);
 	console.log('got new data');
 });
 
-socket.on('next turn',function(currentTurn){
-	if(myTurn){
-		pickFromPile.visible = true;
-	}
+socket.on('discard',function(){
+	discard.visible = !discard.visible;
 });
 
-
-
-
+socket.on("message",function(message){
+	/*
+		When server sends data to the client it will trigger "message" event on the client side , by 
+		using socket.on("message") , one cna listen for the ,message event and associate a callback to 
+		be executed . The Callback function gets the dat sent from the server 
+	*/
+	//console.log("Message from the server arrived")
+	message = JSON.parse(message);
+	//console.log(message); /*converting the data into JS object */
+	
+	$('#chatlog').append('<div style="color:'+message.color+'">'+message.data+'</div>'); /*appending the data on the page using Jquery */
+	$('#response').text(message.data);
+	//$('#chatlog').scroll();
+	$('#chatlog').animate({scrollTop: 1000000});
+});
 var pickFromPile = new PickFromPile(canvas.width/3,canvas.width/2,'take face down');
+var discard = new Discard(canvas.width/3,canvas.width/4,'discard the card that you have just tooken from the face down pile');
 //functions
 
 function resizeCanvas(){
@@ -342,9 +430,14 @@ function resizeDrawings(){
 	board.columnThickness = tileWidth + 2*tilePadding;*/
 	
 	for(var i = 0; i < myTilesThatISomtimesLove.length; i++){
-		myTilesThatISomtimesLove[i].updateSize((canvas.width/2) + (tileWidth + 20) * (i-(myTilesThatISomtimesLove.length/2)+0.5) , canvas.height - (tileHeight + 20), tileHeight, tileWidth);
+		myTilesThatISomtimesLove[i].updateSize(myTilesThatISomtimesLove[i].xpercent,myTilesThatISomtimesLove[i].ypercent);
 	}
 	submitButton.updateSize(canvas.width/2, canvas.height-tileHeight-80, canvas.width, tileHeight);
+	if(myTilesThatISomtimesLove.length != 0){
+		pickFromPile.updateSize(canvas.width/4,canvas.width/4,myTilesThatISomtimesLove[0].width/2,myTilesThatISomtimesLove[0].height/2);
+		discard.updateSize(canvas.width/4,canvas.width/6,myTilesThatISomtimesLove[0].width/2,myTilesThatISomtimesLove[0].height/2);
+	}
+	
 }
 
 function changeName(userId){
@@ -389,7 +482,10 @@ function draw(){
 	
 	//var radius = (Math.min(canvas.width, canvas.height-140)/2)-50;
 	shapes[0].push(submitButton);
-	shapes[0].push(pickFromPile);
+	if(myTurn){
+		shapes[0].push(pickFromPile);
+		shapes[0].push(discard);
+	}
 	if (tilesDiscarded != undefined){
 		shapes[0].push(tilesDiscarded);
 	}

@@ -32,7 +32,7 @@ body {
 #gameAndOverlay{
 	display: flex;
 	flex-direction: column;
-	width:80%;
+	width:70%;
 }
 
 #content {
@@ -57,6 +57,29 @@ body {
 	padding: 5px;
 	color: #FFFFFF;
 	background: #888888;
+}
+
+#leftSideBar {
+	display:flex;
+	flex-direction:column;
+	/* border: 1px solid #00aa00; */
+	width: 15%;
+	/* min-width: 200px; */
+	padding: 5px;
+	color: #FFFFFF;
+	background: #888888;
+}
+
+#propName {
+	display:flex;
+	flex-direction:column;
+	width:50%;
+}
+
+#propValue {
+	display:flex;
+	flex-direction:column;
+	width:50%;
 }
 
 * { /* keeps boxes from being bigger than they are*/

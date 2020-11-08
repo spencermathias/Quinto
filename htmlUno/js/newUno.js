@@ -1,6 +1,11 @@
-//setup window
+//events
 var publicAddress = 'http://localhost:8080/';
 var internalAddress = 'http://localhost:8080/';
+
+const buttonType = {
+	FACEUP:0,
+	FACEDOWN:1
+};
 
 window.addEventListener('load', function() {
 	var lastTouch = {x:0, y:0};
@@ -51,12 +56,12 @@ $('#submit').click(function(){
 document.getElementById('title').style.color = '#ff0000'
 function titleFunction(){
 	let title = document.getElementById('title')
-	if (title.style.color == 'rgb(255, 0, 0)'){
+	if ( title.style.color == 'rgb(255, 0, 0)' ){
 		title.style.color = '#00ff00';
-		socket.emit('ready',true);
+		socket.emit('ready', {ready: true});
 	} else {
 		title.style.color = '#ff0000';
-		socket.emit('ready',false);
+		socket.emit('ready', {ready: false});
 	}
 	return false;
 }
@@ -69,16 +74,15 @@ function allowAudio(){
 		soundsAllowed = true;
 	}
 }
-//global varibles
-var tileFontSize = 30;
+
+var selected = undefined;
+var scoreIsValid = false;
+
 var canvas = document.getElementById("gameBoard");
 var ctx = canvas.getContext("2d");
-var deck = [...Array (61).keys()];
-var clickAreaDefined = false;
-deck.shift();//remove 0
-//classes
+
 class Button {
-	constructor(x, y, width, height, text = 'button', fillColor, outlineColor, textColor, textOutlineColor, fontSize = 50, textSlant = false){
+	constructor(x, y, width, height, text = "button", fillColor, outlineColor, textColor, textOutlineColor, fontSize = 50, textSlant = false){
 		this.updateSize(x,y,width,height);
 		this.fillColor = fillColor;
 		this.outlineColor = outlineColor;
@@ -129,156 +133,30 @@ class Button {
 }
 
 class Card extends Button{
-	constructor(xpercent,ypercent,text){
-		super(undefined,undefined,undefined,undefined,text,'White','Black','Black','White',20,false);
-		this.xpercent = xpercent;
-		this.ypercent = ypercent;
-		this.updateSize(xpercent,ypercent);
-		this.totalcolors = 3;
+	constructor(x,y,text,fillColor){
+		/*console.log(x);
+		console.log(y);
+		console.log(text);*/
+		console.log(fillColor);
+		super(x,y,40,40,text,fillColor,undefined,'Black',undefined,20,false);
+		this.updateSize(x,y);
+		this.text = text;
 		this.visible = true;
 	}
-	updateSize(xpercent,ypercent){
-		let width = undefined;
-		let height = undefined;
-		if (canvas.width/canvas.height > 1.25){
-			width = Math.min(canvas.width/3.5,canvas.height * 1.2 / 5);
-			height = width/1.3
-		}else{
-			width = Math.min(canvas.width/2.5,canvas.height * 1.2 / 10);
-			height = width/1.3;
-		}
-		let x = xpercent * (canvas.width - width)/100 + width/2;
-		let y = ypercent * (canvas.height - height)/100 + height/2;
-		this.clickArea = {minX: x - width/2, minY: y - height/2, maxX: x + width/2, maxY: y + height/2};
-		super.updateSize(x,y,width,height);
-	}
-	draw(ctx){
-		if(this.visible){
-			ctx.save();
-			ctx.fillStyle = this.fillColor;
-			ctx.strokeStyle = this.outlineColor;
-			roundRect(ctx, this.clickArea.minX, this.clickArea.minY, this.width, this.height, this.width/8, this.fillColor != undefined, this.outlineColor != undefined);
-			//draw number
-			if (this.text <= 20){
-				ctx.fillStyle = '#00ff00';
-			}else{
-				if(this.text >= 40){
-					ctx.fillStyle = '#ff0000';
-				}else{
-					ctx.fillStyle = '#ffdf00';
-				}
-			}
-			ctx.font = '' + this.fontSize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
-			
-			ctx.strokeStyle = this.textOutlineColor;
-			ctx.translate(this.x, this.y);
-			if(this.textColor != undefined){
-				ctx.fillText(this.text,(this.width - 8)/60*this.text - this.width/2,-(this.height/20 * 7));
-			}
-			if(this.textOutline != undefined){
-				ctx.strokeText(this.text, 0, 0);
-			}
-			ctx.restore();
-		}
+	updateSize(x,y){
+		this.width = 40;
+		this.height = 40;
+		this.x = x;
+		this.y = y;
+		this.clickArea = {minX: x - this.width/2, minY: y - this.height/2, maxX: x + this.width/2, maxY: y + this.height/2};
 	}
 	click(){
 		if(myTurn){
-			console.log(this);
-			socket.emit('switch with deack',this.text);
+			socket.emit('play the card',myTilesThatISomtimesLove[this]);
 		}
 	}
 }
 
-class SubmitButton extends Button{
-	constructor(){
-		super(canvas.width/2, canvas.height/2, canvas.width,40,"Finish Game",'#0000ff',undefined,'#ffffff',undefined,20,false);
-	}
-	click(){
-		//TODO:check if it is your turn or not
-		if(myTurn){
-			socket.emit('submit pushed');
-		}
-	}
-}
-
-class PickFromPile extends Button{
-	constructor(x,y,text){
-		let width = undefined;
-		let height = undefined;
-		if (canvas.width/canvas.height > 1.25){
-			width = Math.min(canvas.width/3.5,canvas.height * 1.2 / 5);
-			height = width/1.3;
-		}else{
-			width = Math.min(canvas.width/2.5,canvas.height * 1.2 / 10);
-			height = width/1.3;
-		}
-		super(x,y,width,height,text,'Blue','Black','Black',undefined,15)
-		this.x = x;
-		this.y = y;
-		this.text = text;
-		this.clickArea = {minX: x - width/2, minY: y - height/2, maxX: x + width/2, maxY: y + height/2};
-		this.selected = false;
-	}
-	
-	draw(){
-		if(this.visible){
-			ctx.save();
-			ctx.fillStyle = this.fillColor;
-			ctx.strokeStyle = this.outlineColor;
-			roundRect(ctx, this.clickArea.minX, this.clickArea.minY, this.width, this.height, this.width/8, this.fillColor != undefined, this.outlineColor != undefined);
-
-			//draw number
-			ctx.font = '' + this.fontSize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
-			ctx.fillStyle = this.textColor;
-			ctx.strokeStyle = this.textOutlineColor;
-			ctx.translate(this.x, this.y);
-			if(this.textSlant){
-				ctx.rotate(Math.atan(this.height/this.width));
-			}
-			if(this.textColor != undefined){
-				ctx.fillText(this.text,0,0);
-			}
-			if(this.textOutline != undefined){
-				ctx.strokeText(this.text, 0, 0);
-			}
-			ctx.restore();
-		}
-	}
-	
-	click(){
-		Discard.visible = !Discard.visible;
-		socket.emit('get from face down');
-		console.log('got inside the loop');
-		this.visible = false;
-	}
-}
-
-class Discard extends Button{
-	constructor(x,y,text){
-		let width = undefined;
-		let height = undefined;
-		if (canvas.width/canvas.height > 1.25){
-			width = Math.min(canvas.width/3.5,canvas.height * 1.2 / 5);
-			height = width/1.3;
-		}else{
-			width = Math.min(canvas.width/2.5,canvas.height * 1.2 / 10);
-			height = width/1.3;
-		}
-		super(x,y,width,height,text,'Blue','Black','Black',undefined,15)
-		this.x = x;
-		this.y = y;
-		this.text = text;
-		this.clickArea = {minX: x - width/2, minY: y - height/2, maxX: x + width/2, maxY: y + height/2};
-		this.visible = false;
-	}
-	
-	click(){
-		this.selected = true;
-		socket.emit('discard face down');
-	}
-}
-
-var submitButton = new SubmitButton();
 var myTilesThatISomtimesLove = [];
 var shapes = [[],[],[]];
 var myTurn = false;
@@ -290,13 +168,14 @@ var socket = io(publicAddress);
 var tilesDiscarded = undefined;
 var spectatorColor = "#444444";
 var yourTurnColor = "#0000ff";
-var newTileColor = "Chocolate";
 var placeholderColor = '#444444';
-var validPlayColor = '#00ff00';
-var invalidPlayColor = '#ff0000';
-var defaultTileColor = '#ffe0b3';
-var newServerTileColor = '#aae0b3';
-//sockets stuff
+
+socket.on('showBoard',function(data){
+	$('#title').css('color', data.titleColor);
+	$('#content').css('display', data.displayTitle);
+	$('#gameBoard').css('display', data.displayGame);
+	resizeCanvas();
+});
 
 socket.on('connect', function(){
 	//get userName
@@ -313,18 +192,10 @@ socket.on('connect', function(){
 	localStorage.id = socket.id;
 });
 
-socket.on('showBoard',function(data){
-	$('#title').css('color', data.titleColor);
-	$('#content').css('display', data.displayTitle);
-	$('#gameBoard').css('display', data.displayGame);
-	resizeCanvas();
-});
-
 socket.on('userList',function(data){
 	var userListString = '';
 	userList = data;
 	resizeDrawings();
-	
 	for( var i = 0; i < data.length; i++ ){
 		tilesDiscarded = new Card(75,50,data[i].cardsInFaceUpPile);
 		var header = 'div id="userListDiv'+ i + '"';
@@ -351,50 +222,32 @@ socket.on('userList',function(data){
 		//console.log( "player", data[i].userName, "myTurn", myTurn, "id", data[i].id, socket.id, "color", data[i].color, yourTurnColor);
 	}
 	document.getElementById('userlist').innerHTML = userListString;
-	console.table(data);
+	//console.table(data);
 	if(myTurn){
 		pickFromPile.visible = true;
 	}
 });
 
-/*socket.on('tiles', function(tiles){
-	serverTiles = tiles;
-	
-	for(var i = 0; i < tiles.length; i++){
-		if (i < myTilesThatISomtimesLove.length){
-			myTilesThatISomtimesLove[i];
-			//make list of tiles
-		}
-		
-	}
-	
-	//resizeDrawings();
-	console.log('tiles updated: ', myTiles);
-});*/
-
 socket.on('cards',function(cardYouSee,yourCards){
 	myTilesThatISomtimesLove = [];
-	for (var i = 0;i < yourCards.length;i++){
+	console.log(yourCards);
+	yourCards.forEach(function(card){
 		var card = new Card(
-			50,
-			100/yourCards.length * i, 
-			yourCards[i]
+			canvas.width / yourCards.length * (yourCards.indexOf(card)),
+			25,
+			card.number,
+			card.color
 		);
-		console.log(card.clickArea.minX);
 		myTilesThatISomtimesLove.push(card);
 		card.visible = true;
-	}
-	gameStarted = true;
+		console.log(canvas.width / yourCards.length * (yourCards.indexOf(card)));
+	});
 	if(cardYouSee != undefined){
-		tilesDiscarded = new Card(75,50,cardYouSee);
+		tilesDiscarded = new Card(75,50,cardYouSee.number,cardYouSee.color);
 	}
-	console.table(myTilesThatISomtimesLove);
-	console.table(tilesDiscarded);
-	console.log('got new data');
-});
-
-socket.on('discard',function(){
-	discard.visible = !discard.visible;
+	//console.table(myTilesThatISomtimesLove);
+	//console.table(tilesDiscarded);
+	//console.log('got new data');
 });
 
 socket.on("message",function(message){
@@ -412,14 +265,11 @@ socket.on("message",function(message){
 	//$('#chatlog').scroll();
 	$('#chatlog').animate({scrollTop: 1000000});
 });
-var pickFromPile = new PickFromPile(canvas.width/3,canvas.width/2,'take face down');
-var discard = new Discard(canvas.width/3,canvas.width/4,'discard the card that you have just tooken from the face down pile');
-//functions
 
 function resizeCanvas(){
 	canvas.width = window.innerWidth - $('#sidebar').width() - 50;
 	canvas.height = window.innerHeight - 2;
-	console.log('canvas resized to: ', canvas.width, canvas.height);
+	//console.log('canvas resized to: ', canvas.width, canvas.height);
 	resizeDrawings();
 }
 
@@ -435,12 +285,6 @@ function resizeDrawings(){
 	for(var i = 0; i < myTilesThatISomtimesLove.length; i++){
 		myTilesThatISomtimesLove[i].updateSize(myTilesThatISomtimesLove[i].xpercent,myTilesThatISomtimesLove[i].ypercent);
 	}
-	submitButton.updateSize(canvas.width/2, canvas.height-tileHeight-80, canvas.width, tileHeight);
-	if(myTilesThatISomtimesLove.length != 0){
-		pickFromPile.updateSize(canvas.width/4,canvas.width/4,myTilesThatISomtimesLove[0].width/2,myTilesThatISomtimesLove[0].height/2);
-		discard.updateSize(canvas.width/4,canvas.width/6,myTilesThatISomtimesLove[0].width/2,myTilesThatISomtimesLove[0].height/2);
-	}
-	
 }
 
 function changeName(userId){
@@ -458,24 +302,6 @@ function changeName(userId){
 	}
 }
 
-function MoveTile(){
-	/*if(selected != undefined){ //switch
-		console.log("switch", selected.tileData, this.tileData);
-		if(selected.tileData != undefined){
-		var tempNumber = selected.tileData.number;
-			var tempOwner = selected.tileData.owner;
-			var tempId = selected.tileData.id;
-			selected.updateData(this.tileData);
-			this.updateData({owner: tempOwner, number: tempNumber, id: tempId})
-			selected = undefined;
-		} else {
-			this.tileData = undefined;
-		}
-	} else { //select
-		selected = this;
-	}*/
-}
-
 function draw(){
 	shapes = [[],[],[]]; //first object is top layer, second is middle, last is bottom layer
 	ctx.textAlign="center";
@@ -486,16 +312,12 @@ function draw(){
 	//var radius = (Math.min(canvas.width, canvas.height-140)/2)-50;
 	shapes[0].push(submitButton);
 	if(myTurn){
-		shapes[0].push(pickFromPile);
-		shapes[0].push(discard);
 	}
 	if (tilesDiscarded != undefined){
 		shapes[0].push(tilesDiscarded);
 	}
 	//player tiles
 	for(var i = 0; i < myTilesThatISomtimesLove.length; i++){
-		shapes[0].push( myTilesThatISomtimesLove[i]);
-		
 		//if(myTurn){
 		/*if(scoreIsValid){
 			myTiles[i].drawOutline(validPlayColor);
@@ -504,8 +326,7 @@ function draw(){
 		}*/
 		 //else {
 		//	myTiles[i].drawOutline('#444444'); //placeholder outline
-		
-		
+		shapes[0].push( myTilesThatISomtimesLove[i] );//1st layer
 		
 	}
 	
@@ -557,8 +378,6 @@ function checkClick(event){
 	}
 }
 
-draw();
-
 function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
   if (typeof stroke == 'undefined') {
 	stroke = true;
@@ -592,4 +411,3 @@ function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
 	ctx.stroke();
   }
 }
-

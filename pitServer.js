@@ -113,12 +113,12 @@ io.sockets.on("connection", function(socket) {
 				socket.userData = players[i].userData;
 				players[i] = socket;
 				
-				socket.emit('tiles', socket.userData.tiles);
+			
 				
 				if(gameStatus === gameMode.PLAY){
 					io.emit('startGame');
 				}
-				
+				socket.emit('tiles', socket.userData.tiles);
 			} else {
 				console.log(__line, "new player");
 			}
@@ -415,8 +415,10 @@ function newRound(socket,add){
 	console.log(__line,'p',players.length);
 	
 	//deal new cards
-	shared.cardDes.products = shared.cardDes.products.slice(0,players.length);
-	tiles = new Deck( shared.cardDes); //deck to deal to players
+	var discription = shared.cardDes
+	console.log(discription);
+	discription.products = shared.cardDes.products.slice(0,players.length);
+	tiles = new Deck(discription); //deck to deal to players
 	var pile = new Array(tiles.totalCards);
 	for (var i = 0; i < pile.length; i++){ pile[i]=i;}
 	
@@ -571,10 +573,9 @@ function gameStart() {
 			client.userData.statusColor = spectatorColor;
 		}
 	});
-	newRound(undefined,undefined);
-
 	//wait for turn plays
 	io.emit('startGame');
+	newRound(undefined,undefined);
 }
 
 function sendBoardState(){

@@ -13,7 +13,7 @@ class Deck{
 		this.totalCards = constants.shift() //first number is the total number of cards
 			
 		this.divConstants = constants //CONST
-		this.pile =[]
+		this.pile = []
 		for( let i = 0;i<this.totalCards;i++){this.pile.push(i);}
 		this.shuffle(5)
 	
@@ -69,6 +69,7 @@ class Deck{
 	}
 }
 
+
 //try/catch to allow use on client and server side
 try {
 	module.exports = Deck
@@ -76,10 +77,5 @@ try {
 	console.log("you must be client side!")
 } 
 
-let a = new Deck({color:['green','blue','red','yellow'], number:[0,1,2,3,4,5,6,7,8,9,'reverse','skip','draw 2','wild','wild DRAW 4'],repeats:[1,2]}) //MSB->LSB
+//TODO: get deck to take out the repeats that arnt right
 
-let c = []
-for(let b = 0; b<84; b++){
-	c.push(a.getProperties(b))
-}
-console.log(c)

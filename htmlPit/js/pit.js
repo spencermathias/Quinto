@@ -9,7 +9,7 @@
 // TODO: fix chat chat stretch
 
 //events
-var publicAddress = 'http://alanisboard.ddns.net/';
+var publicAddress = 'http://localhost:8080';
 var internalAddress = 'http://192.168.1.8:8080/';
 
 window.addEventListener('load', function() {
@@ -603,6 +603,22 @@ socket.on('startGame',()=>{
 		}	
 		y += textsize*1.5;
 	});
+	
+	for (var i = 0;i < 10;i++){
+	var tile = new Tile(
+		(canvas.width/2) + (tileWidth + 20) * (i-2),
+		canvas.height - (tileHeight + 20),
+		tileWidth,
+		tileHeight,
+		'',
+		newTileColor,'#000000','#000000','#000000',
+		20,true
+	);
+	//tile.drawOutline(placeholderColor); //placeholder outline
+	myTiles.push(tile);
+	}
+	
+	pushProprites();
 });
 
 function changeName(userId){
@@ -620,6 +636,13 @@ function changeName(userId){
 	}
 }
 
+function pushProprites(){
+	for(let x = 0; x < userList.length; x++){
+		let y = shared.cardDes.products[x].name;
+		let z = shared.cardDes.products[x].value;
+		$('#proprites').append('<li>' + y + ' ' + z + '</li>');
+	}
+}
 /*Initializing the connection with the server via websockets */
 var myTiles = [];
 var playerTradeMatrix = [];
@@ -642,19 +665,7 @@ var myTurn = false;
 var myUserlistIndex = 0;
 var myUserlistString = "";
 
-for (var i = 0;i < 10;i++){
-	var tile = new Tile(
-		(canvas.width/2) + (tileWidth + 20) * (i-2),
-		canvas.height - (tileHeight + 20),
-		tileWidth,
-		tileHeight,
-		'',
-		newTileColor,'#000000','#000000','#000000',
-		20,true
-	);
-	//tile.drawOutline(placeholderColor); //placeholder outline
-	myTiles.push(tile);
-}
+
 socket.on("message",function(message){  
 	/*
 		When server sends data to the client it will trigger "message" event on the client side , by 
@@ -713,6 +724,7 @@ socket.on('showBoard',function(data){
 });
 
 socket.on('tiles', function(tiles){
+	console.log(tiles);
 	serverTiles = tiles;
 	
 	for(var i = 0; i < tiles.length; i++){
@@ -754,6 +766,7 @@ socket.on('gameEnd',()=>{
 		delete t;
 	});
 	myTiles = [];
+	$('#proprites').empty();
 });
 
 function updatePlayValidity(){
@@ -847,7 +860,7 @@ function draw(){
 	setTimeout(draw, 100); //repeat
 }
 
-draw();
+
 
 function resizeCanvas(){
 	canvas.width = window.innerWidth - $('#sidebar').width() - 50;
@@ -939,3 +952,5 @@ function polygon(ctx, x, y, radius, sides, startAngle, anticlockwise) {
 	ctx.closePath();
 	ctx.restore();
 }
+
+draw();

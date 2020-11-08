@@ -11,6 +11,8 @@ var cardOnTop = [];
 var cardsInFaceUpPile = [];
 var cardPlayedOnTopOf = [];
 var pile = [];
+var pilesForGame = [];
+var pileOn = 0;
 
 //const spawn = require("child_process").spawn;
 
@@ -260,18 +262,18 @@ io.sockets.on("connection", function(socket) {
 		}else{
 			socket.userData.alreadyPicked = true;
 			//TODO: show the face down card
-			if(pile.length == 0){
+			if(pilesForGame[pileOn].length == 0){
 				for(var x = 1;x < cardsInFaceUpPile.length - 1;x++){
-					pile.push(cardsInFaceUpPile[x]);
+					pilesForGame[pileOn].push(cardsInFaceUpPile[x]);
 					cardsInFaceUpPile.splice(x,1);
 				}
 			}
 			if( players[currentTurn%players.length].id === socket.id ){
-				var x = Math.floor(Math.random * pile.length);
-				cardsInFaceUpPile.push(dealSingleTile(pile));
-				pile.splice(x,1);
+				var x = Math.floor(Math.random * pilesForGame[pileOn].length);
+				cardsInFaceUpPile.push(dealSingleTile(piles[pileOn]));
+				piles[pileOn].splice(x,1);
 				socket.emit('cards',cardsInFaceUpPile[cardsInFaceUpPile.length - 1],socket.userData.tiles);
-				console.log('switched the cards',pile,cardsInFaceUpPile);
+				console.log('switched the cards',pilesForGame[pileOn],cardsInFaceUpPile);
 				socket.emit('discard');
 			}
 		}
@@ -285,8 +287,8 @@ io.sockets.on("connection", function(socket) {
 		let x = socket.userData.tiles.indexOf(number);
 		socket.userData.tiles.splice(x,1,cardsInFaceUpPile.pop());
 		cardsInFaceUpPile.push(number);
-		socket.emit('cards',cardsInFaceUpPile[cardsInFaceUpPile.length - 1],socket.userData.tiles);
 		nextTurn();
+		socket.emit('cards',cardsInFaceUpPile[cardsInFaceUpPile.length - 1],socket.userData.tiles);
 		console.log('you clicked the tile');
 	});
 });
@@ -427,8 +429,14 @@ function gameStart() {
 	//reset players
 	players = [];
 	spectators = [];
+	
+	var pilesNeeded = Math.ceil(((players.length * 10) + 1)/60);
+	
 	pile = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60];
-	cardsInFaceUpPile.push(dealSingleTile(pile));
+	for(var i = 0;i < pilesNeeded;i++){
+		pilesForGame.push(pile);
+	}
+	cardsInFaceUpPile.push(dealSingleTile(pilesForGame[pileOn]));
 	currentTurn = Math.floor(Math.random()*players.length); //random starting person
 	allClients.forEach(function(client){
 		if(client.userData.ready){
@@ -449,7 +457,7 @@ function gameStart() {
 	//console.log(__line, "cards", pile) ;
 	//console.log(__line, "cards",players[0].userdata.tiles);
 	players.forEach(function (player){
-		dealTiles(player,pile,10);
+		dealTiles(player,pilesForGame[pileOn],10);
 		player.emit('cards',cardsInFaceUpPile[0],player.userData.tiles);
 	});
 	
@@ -460,7 +468,6 @@ function gameStart() {
 
 	//wait for turn plays
 	io.emit('startGame');
-	
 }
 
 function sendBoardState(){
@@ -491,7 +498,7 @@ function dealTiles(player, carddeck, amountToBeDelt) {
 
 //deals a single tile
 function dealSingleTile(carddeck){
-	x = Math.floor(Math.random() * pile.length);
+	x = Math.floor(Math.random() * pilesForGame[pileOn].length);
 	return pile.splice(x,1).pop();
 }
 

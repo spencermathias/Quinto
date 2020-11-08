@@ -162,7 +162,6 @@ class ConfirmButtonTakeFaceDown extends Button{
 	}
 	
 	click(){
-		lastSubmitPushed = buttonType.FACEDOWN;
 		
 	}
 }

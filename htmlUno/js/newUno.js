@@ -55,13 +55,20 @@ $('#submit').click(function(){
 
 document.getElementById('title').style.color = '#ff0000'
 function titleFunction(){
-	let title = document.getElementById('title')
-	if ( title.style.color == 'rgb(255, 0, 0)' ){
+	console.log('got in title function');
+	let title = document.getElementById('title');
+	if ( title.style.color == 'rgb(255,0,0)' ){
+		console.log('ready is true');
 		title.style.color = '#00ff00';
 		socket.emit('ready', {ready: true});
 	} else {
+		console.log('ready is false',title.style.color);
 		title.style.color = '#ff0000';
 		socket.emit('ready', {ready: false});
+		console.log('ready is false',title.style.color);
+		if(document.getElementById('title').style.color == 'rgb(255,0,0)'){
+			console.log('why isent this working');
+		}
 	}
 	return false;
 }
@@ -133,22 +140,23 @@ class Button {
 }
 
 class Card extends Button{
-	constructor(x,y,text,fillColor){
-		/*console.log(x);
-		console.log(y);
-		console.log(text);*/
-		console.log(fillColor);
-		super(x,y,40,40,text,fillColor,undefined,'Black',undefined,20,false);
-		this.updateSize(x,y);
+	constructor(x,text,fillColor){
+		console.log(x);
+		//console.log(y);
+		//console.log(text);*/
+		//console.log(fillColor);
+		super(x,25,40,40,text,fillColor,undefined,'Black',undefined,20,false);
+		this.updateSize(x);
 		this.text = text;
+		this.x = x;
 		this.visible = true;
 	}
-	updateSize(x,y){
+	updateSize(x){
 		this.width = 40;
 		this.height = 40;
 		this.x = x;
-		this.y = y;
-		this.clickArea = {minX: x - this.width/2, minY: y - this.height/2, maxX: x + this.width/2, maxY: y + this.height/2};
+		this.y = 25;
+		this.clickArea = {minX: x - this.width/2, minY: 25 - this.height/2, maxX: x + this.width/2, maxY: 25 + this.height/2};
 	}
 	click(){
 		if(myTurn){
@@ -171,6 +179,7 @@ var yourTurnColor = "#0000ff";
 var placeholderColor = '#444444';
 
 socket.on('showBoard',function(data){
+	console.log(data.titleColor);
 	$('#title').css('color', data.titleColor);
 	$('#content').css('display', data.displayTitle);
 	$('#gameBoard').css('display', data.displayGame);
@@ -230,20 +239,15 @@ socket.on('userList',function(data){
 
 socket.on('cards',function(cardYouSee,yourCards){
 	myTilesThatISomtimesLove = [];
-	console.log(yourCards);
-	yourCards.forEach(function(card){
-		var card = new Card(
-			canvas.width / yourCards.length * (yourCards.indexOf(card)),
-			25,
-			card.number,
-			card.color
-		);
+	//console.log(yourCards);
+	for(var i = 0;i < yourCards.length;i++){
+		var card = new Card(canvas.width / yourCards.length * i,yourCards[i].number,yourCards[i].color);
 		myTilesThatISomtimesLove.push(card);
 		card.visible = true;
-		console.log(canvas.width / yourCards.length * (yourCards.indexOf(card)));
-	});
+		//console.log(canvas.width / yourCards.length * (yourCards.indexOf(card)));
+	}
 	if(cardYouSee != undefined){
-		tilesDiscarded = new Card(75,50,cardYouSee.number,cardYouSee.color);
+		tilesDiscarded = new Card(75,cardYouSee.number,cardYouSee.color);
 	}
 	//console.table(myTilesThatISomtimesLove);
 	//console.table(tilesDiscarded);

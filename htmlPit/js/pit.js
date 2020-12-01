@@ -10,7 +10,7 @@
 
 //events
 var publicAddress = 'http://localhost:8080';
-var internalAddress = 'http://192.168.1.8:8080/';
+var internalAddress = 'http://localhost:8080';
 
 window.addEventListener('load', function() {
 	var lastTouch = {x:0, y:0};
@@ -51,10 +51,12 @@ window.addEventListener('load', function() {
 
 $('#submit').click(function(){
 	var data = {
-		message:$('#message').val()         
+		message:$('#message').val(),
+		vote:$('#winValueVote').val()
 	}
 	socket.send(JSON.stringify(data)); 
 	$('#message').val('');
+	$('#winValueVote').val('');
 	return false;
 });
 
@@ -571,6 +573,8 @@ socket.on('connect', function(){
 	console.log("Connection successful!");
 	if(localStorage.userName === undefined){
 		changeName(socket.id);
+		var myBid = prompt('Enter what score you want to play to. Please make it no greater than 500.');
+		socket.emit('newBidForScoreToWinTheGame',myBid);
 	} else {
 		socket.emit('userName', localStorage.userName);
 	}

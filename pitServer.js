@@ -54,6 +54,8 @@ var readyTitleColor = "#00ff00";
 var notReadyTitleColor = "#ff0000";
 var spectatorColor = "#444444";
 var notYourTurnColor = "#ffffff";
+var bidsForWinningScore = [];
+var winningScore = 0;
 //var yourTurnColor = "#0000ff";
 
 
@@ -123,6 +125,10 @@ io.sockets.on("connection", function(socket) {
 				console.log(__line, "new player");
 			}
 		}
+	});
+	
+	socket.on('newBidForScoreToWinTheGame',function(bidToBeAdded){
+		bidsForWinningScore.push(bidToBeAdded);
 	});
 
     socket.on("message",function(data) {
@@ -392,7 +398,7 @@ function newRound(socket,add){
 		message(io.sockets,socket.userData.userName + ' won that round',gameColor);
 		socket.userData.score += add;
 		updateUsers();
-		if (socket.userData.score >= 50){
+		if (socket.userData.score >= winningScore){
 			return actilyGameEnd(socket);
 		}
 	}
@@ -576,6 +582,13 @@ function gameStart() {
 	//wait for turn plays
 	io.emit('startGame');
 	newRound(undefined,undefined);
+	for(var x = 0;x < bidsForWinningScore.length;x++){
+		var a = parseInt(bidsForWinningScore[x]);
+		winningScore += a;
+	}
+	winningScore = winningScore/bidsForWinningScore.length;
+	console.log(winningScore);
+	message(io.sockets,'The winning score for this game is ' + winningScore, gameColor);
 }
 
 function sendBoardState(){

@@ -12,7 +12,7 @@ var cardsInFaceUpPile = [];
 var cardPlayedOnTopOf = [];
 var pile = [];
 var pilesForGame = [];
-var pileOn = 0;
+var pilesNeeded = 0;
 
 //const spawn = require("child_process").spawn;
 
@@ -255,6 +255,9 @@ io.sockets.on("connection", function(socket) {
 	
 	socket.on('discard face down',function (){
 		nextTurn();
+		players.forEach(function(player){
+			player.emit('cards',cardsInFaceUpPile[cardsInFaceUpPile.length - 1],player.userData.tiles);
+		});
 	});
 	socket.on('get from face down',()=> {
 		if(socket.userData.alreadyPicked){
@@ -262,18 +265,12 @@ io.sockets.on("connection", function(socket) {
 		}else{
 			socket.userData.alreadyPicked = true;
 			//TODO: show the face down card
-			if(pilesForGame[pileOn].length == 0){
-				for(var x = 1;x < cardsInFaceUpPile.length - 1;x++){
-					pilesForGame[pileOn].push(cardsInFaceUpPile[x]);
-					cardsInFaceUpPile.splice(x,1);
-				}
-			}
+			
 			if( players[currentTurn%players.length].id === socket.id ){
-				var x = Math.floor(Math.random * pilesForGame[pileOn].length);
-				cardsInFaceUpPile.push(dealSingleTile(piles[pileOn]));
-				piles[pileOn].splice(x,1);
+				cardsInFaceUpPile.push(dealSingleTile());
 				socket.emit('cards',cardsInFaceUpPile[cardsInFaceUpPile.length - 1],socket.userData.tiles);
-				console.log('switched the cards',pilesForGame[pileOn],cardsInFaceUpPile);
+				
+				//console.log('switched the cards',pilesForGame[pileOn],cardsInFaceUpPile);
 				socket.emit('discard');
 			}
 		}
@@ -283,13 +280,32 @@ io.sockets.on("connection", function(socket) {
 		cheakWin(socket);
 	});
 	
-	socket.on('switch with deack',function(number){
-		let x = socket.userData.tiles.indexOf(number);
-		socket.userData.tiles.splice(x,1,cardsInFaceUpPile.pop());
-		cardsInFaceUpPile.push(number);
-		nextTurn();
-		socket.emit('cards',cardsInFaceUpPile[cardsInFaceUpPile.length - 1],socket.userData.tiles);
-		console.log('you clicked the tile');
+	socket.on('switch with deack',function(number,originalPile){
+		console.log(__line,number,originalPile);
+		if(players[currentTurn].id == socket.id){
+			let cardIndex = undefined;
+			let card = socket.userData.tiles;
+			console.log(card);
+			for(let y = 0;y < card.length;y++){
+				if(card[y].number == number){
+					if(card[y].originalPile == originalPile){
+						cardIndex = y;
+					}
+				}
+			}
+			let x = socket.userData.tiles[cardIndex];
+			console.log(x);
+			socket.userData.tiles.splice(cardIndex,1,cardsInFaceUpPile.pop());
+			cardsInFaceUpPile.push(x);
+			nextTurn();
+			players.forEach(function(player){
+				player.emit('cards',cardsInFaceUpPile[cardsInFaceUpPile.length - 1],player.userData.tiles);
+			});
+			console.log('you clicked the tile');
+		}else{
+			message(socket,'its not your turn',gameErrorColor);
+		}
+
 	});
 });
 
@@ -300,16 +316,13 @@ function shuffleAndDeel(fromArayy,toArayy){
 	fromArayy.splice(y,1)
 }
 
-
-
-
 function cheakWin(playerToCheak){
 	if(players[currentTurn].id == playerToCheak.id){
 		var tilesCorect = 0;
 		console.log(__line,playerToCheak.userData);
 		let playersTiles = playerToCheak.userData.tiles;
 		for(var i = 0; i < playersTiles.length - 1;i++){
-			if(playersTiles[i] < playersTiles[i + 1]){
+			if(playersTiles[i].number < playersTiles[i + 1].number){
 				tilesCorect++;
 			}else{
 				message(playerToCheak,'your tiles arnt in order, to win the game all your tiles must be in order from least to gratest',gameErrorColor);
@@ -320,8 +333,8 @@ function cheakWin(playerToCheak){
 
 		if(tilesCorect == playersTiles.length - 1){
 			for(let a = 0;a < playersTiles.length - 2;a++){
-				if(playersTiles[a] + 1 == playersTiles[a + 1]){
-					if(playersTiles[a] + 2 == playersTiles[a + 2]){
+				if(playersTiles[a].number + 1 == playersTiles[a + 1].number){
+					if(playersTiles[a].number + 2 == playersTiles[a + 2].number){
 						
 						runs++;
 					
@@ -329,12 +342,16 @@ function cheakWin(playerToCheak){
 				}
 			}
 			
+			console.log(__line,runs)
+			
 			if(runs > 0){
-				actilyGameEnd(playerToCheak.userData.userName);
+				actilyGameEnd(playerToCheak);
 			}else{
-				message(socket,'To win the game you must have at least one run of 3',gameErrorColor);
+				message(playerToCheak,'To win the game you must have at least one run of 3',gameErrorColor);
 			}
 		}
+	}else{
+		message(playerToCheak,'you must press the submit button at the begenning of your turn',gameColor);
 	}
 }
 
@@ -430,12 +447,7 @@ function gameStart() {
 	players = [];
 	spectators = [];
 	
-	var pilesNeeded = Math.ceil(((players.length * 10) + 1)/60);
-	
-	for(var i = 0;i < pilesNeeded;i++){
-		pile.push(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60);
-	}
-	cardsInFaceUpPile.push(dealSingleTile(pilesForGame[pileOn]));
+
 	currentTurn = Math.floor(Math.random()*players.length); //random starting person
 	allClients.forEach(function(client){
 		if(client.userData.ready){
@@ -451,12 +463,17 @@ function gameStart() {
 		}
 	});
 	
+	pilesNeeded = Math.ceil(((players.length * 10) + 1)/60);
+	pushPilesNeeded();
+	cardsInFaceUpPile.push(dealSingleTile());
+	console.log(__line,pilesNeeded);
+	
 	updateBoard(io.sockets, readyTitleColor, true);
 	console.log(__line,'p',players.length);
 	//console.log(__line, "cards", pile) ;
 	//console.log(__line, "cards",players[0].userdata.tiles);
 	players.forEach(function (player){
-		dealTiles(player,pilesForGame[pileOn],10);
+		dealTiles(player,10);
 		player.emit('cards',cardsInFaceUpPile[0],player.userData.tiles);
 	});
 	
@@ -486,22 +503,53 @@ function dealAllTiles(players,carddeck){
 	}
 }
 
+function reShuffle(){
+	while(cardsInFaceUpPile.length > 1){
+		let y = cardsInFaceUpPile[0];
+		cardsInFaceUpPile.splice(0,1);
+		pilesForGame[y.originalPile].push(y);
+	}
+	var posiblePiles = [];
+	for(let y = 0;y < pilesForGame.length;y++){
+		if(pilesForGame[y].lenth != 0){
+			posiblePiles.push(y);
+		}
+	}
+	let x = Math.floor(Math.random() * posiblePiles.length);
+	//console.log(__line,posiblePiles)
+	return posiblePiles[x];
+}
+
+function findPileToPickFrom(){
+	var posiblePiles = [];
+	for(let y = 0;y < pilesForGame.length;y++){
+		if(pilesForGame[y].lenth != 0){
+			posiblePiles.push(y);
+		}
+	}
+	console.log(__line,posiblePiles);
+	if(posiblePiles.length == 0){
+		return reShuffle();
+	}else{
+		let x = Math.floor(Math.random() * posiblePiles.length);
+		//console.log(__line,posiblePiles)
+		return posiblePiles[x];
+	}
+}
+
 //deals a set nuber of tiles to a players
-function dealTiles(player, carddeck, amountToBeDelt) {
-	var tileToGive;
+function dealTiles(player, amountToBeDelt) {
 	var i;
 	for( i = 0; i < amountToBeDelt; i+=1) {
-		player.userData.tiles.push(dealSingleTile(carddeck));
-		if(carddeck.length == 0){
-			pileOn++;
-		}
+		player.userData.tiles.push(dealSingleTile());
 	}
 }
 
 //deals a single tile
-function dealSingleTile(carddeck){
-	x = Math.floor(Math.random() * pilesForGame[pileOn].length);
-	return pile.splice(x,1).pop();
+function dealSingleTile(){
+	let pileToTakeFrom = findPileToPickFrom();
+	x = Math.floor(Math.random() * pilesForGame[pileToTakeFrom].length);
+	return pilesForGame[pileToTakeFrom].splice(x,1).pop();
 }
 
 //removes a element from deck array and gives it to the players user data array
@@ -581,22 +629,14 @@ function gameEnd() {
     updateBoard(io.sockets, notReadyTitleColor, false);
 
 	message(io.sockets, "THE GAME HAS ENDED", gameColor);
-	message(io.sockets, "Scores: ", gameColor);
 	let total = 0;
-	for( var i = 0; i < players.length; i += 1){
-		/*for(var tile = 0; tile < players[i].userData.tiles.length; tile++){
-			players[i].userData.score -= players[i].userData.tiles[tile].number;
-		}*/
-		message(io.sockets, players[i].userData.userName + ": " + players[i].userData.score + "\n", gameColor);
-		total += players[i].userData.score;
-	}
-	message(io.sockets, "Total score: " + total, gameColor);
 	
 	io.emit('gameEnd');
 	
 	playerTradeMatrix = [];
     players = [];
 	spectators = [];
+	pilesForGame = [];
     allClients.forEach(function(client) {
 		
         client.userData.ready = false;
@@ -604,6 +644,73 @@ function gameEnd() {
     });
     gameStatus = gameMode.LOBBY;
     updateUsers();
+}
+
+function pushPilesNeeded(){
+	for(var i = 0;i < pilesNeeded;i++){
+		pilesForGame.push([
+		{number:1, originalPile:i},
+		{number:2, originalPile:i},
+		{number:3, originalPile:i},
+		{number:4, originalPile:i},
+		{number:5, originalPile:i},
+		{number:6, originalPile:i},
+		{number:7, originalPile:i},
+		{number:8, originalPile:i},
+		{number:9, originalPile:i},
+		{number:10, originalPile:i},
+		{number:11, originalPile:i},
+		{number:12, originalPile:i},
+		{number:13, originalPile:i},
+		{number:14, originalPile:i},
+		{number:15, originalPile:i},
+		{number:16, originalPile:i},
+		{number:17, originalPile:i},
+		{number:18, originalPile:i},
+		{number:19, originalPile:i},
+		{number:20, originalPile:i},
+		{number:21, originalPile:i},
+		{number:22, originalPile:i},
+		{number:23, originalPile:i},
+		{number:24, originalPile:i},
+		{number:25, originalPile:i},
+		{number:26, originalPile:i},
+		{number:27, originalPile:i},
+		{number:28, originalPile:i},
+		{number:29, originalPile:i},
+		{number:30, originalPile:i},
+		{number:31, originalPile:i},
+		{number:32, originalPile:i},
+		{number:33, originalPile:i},
+		{number:34, originalPile:i},
+		{number:35, originalPile:i},
+		{number:36, originalPile:i},
+		{number:37, originalPile:i},
+		{number:38, originalPile:i},
+		{number:39, originalPile:i},
+		{number:40, originalPile:i},
+		{number:41, originalPile:i},
+		{number:42, originalPile:i},
+		{number:43, originalPile:i},
+		{number:44, originalPile:i},
+		{number:45, originalPile:i},
+		{number:46, originalPile:i},
+		{number:47, originalPile:i},
+		{number:48, originalPile:i},
+		{number:49, originalPile:i},
+		{number:50, originalPile:i},
+		{number:51, originalPile:i},
+		{number:52, originalPile:i},
+		{number:53, originalPile:i},
+		{number:54, originalPile:i},
+		{number:55, originalPile:i},
+		{number:56, originalPile:i},
+		{number:57, originalPile:i},
+		{number:58, originalPile:i},
+		{number:59, originalPile:i},
+		{number:60, originalPile:i}
+		]);
+	}
 }
 
 function actilyGameEnd(winner) {

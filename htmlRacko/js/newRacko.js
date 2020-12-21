@@ -129,10 +129,11 @@ class Button {
 }
 
 class Card extends Button{
-	constructor(xpercent,ypercent,text){
+	constructor(xpercent,ypercent,text,originalPile){
 		super(undefined,undefined,undefined,undefined,text,'White','Black','Black','White',20,false);
 		this.xpercent = xpercent;
 		this.ypercent = ypercent;
+		this.originalPile = originalPile;
 		this.updateSize(xpercent,ypercent);
 		this.totalcolors = 3;
 		this.visible = true;
@@ -182,16 +183,14 @@ class Card extends Button{
 		}
 	}
 	click(){
-		if(myTurn){
-			console.log(this);
-			socket.emit('switch with deack',this.text);
-		}
+		socket.emit('switch with deack',this.text,this.originalPile);
+		discard.visible = false;
 	}
 }
 
 class SubmitButton extends Button{
 	constructor(){
-		super(canvas.width/2, canvas.height/2, canvas.width,40,"Finish Game",'#0000ff',undefined,'#ffffff',undefined,20,false);
+		super(canvas.width/2, canvas.height - 30, canvas.width,40,"Finish Game",'#0000ff',undefined,'#ffffff',undefined,20,false);
 	}
 	click(){
 		//TODO:check if it is your turn or not
@@ -246,7 +245,7 @@ class PickFromPile extends Button{
 	}
 	
 	click(){
-		Discard.visible = !Discard.visible;
+		Discard.visible = true;
 		socket.emit('get from face down');
 		console.log('got inside the loop');
 		this.visible = false;
@@ -274,6 +273,7 @@ class Discard extends Button{
 	
 	click(){
 		this.selected = true;
+		this.visible = false;
 		socket.emit('discard face down');
 	}
 }
@@ -326,7 +326,6 @@ socket.on('userList',function(data){
 	resizeDrawings();
 	
 	for( var i = 0; i < data.length; i++ ){
-		tilesDiscarded = new Card(75,50,data[i].cardsInFaceUpPile);
 		var header = 'div id="userListDiv'+ i + '"';
 		var click = 'onclick="changeName(' + "'" + data[i].id + "'" + ')"';
 		var color = ' style="color: ' + data[i].color + ';"'
@@ -374,11 +373,13 @@ socket.on('userList',function(data){
 
 socket.on('cards',function(cardYouSee,yourCards){
 	myTilesThatISomtimesLove = [];
+	console.log(cardYouSee.number);
 	for (var i = 0;i < yourCards.length;i++){
 		var card = new Card(
 			50,
 			100/yourCards.length * i, 
-			yourCards[i]
+			yourCards[i].number,
+			yourCards[i].originalPile
 		);
 		console.log(card.clickArea.minX);
 		myTilesThatISomtimesLove.push(card);
@@ -386,10 +387,10 @@ socket.on('cards',function(cardYouSee,yourCards){
 	}
 	gameStarted = true;
 	if(cardYouSee != undefined){
-		tilesDiscarded = new Card(75,50,cardYouSee);
+		tilesDiscarded = new Card(75,50,cardYouSee.number,cardYouSee.originalPile);
 	}
-	console.table(myTilesThatISomtimesLove);
-	console.table(tilesDiscarded);
+	console.log(myTilesThatISomtimesLove);
+	console.log(tilesDiscarded);
 	console.log('got new data');
 });
 
@@ -413,7 +414,7 @@ socket.on("message",function(message){
 	$('#chatlog').animate({scrollTop: 1000000});
 });
 var pickFromPile = new PickFromPile(canvas.width/3,canvas.width/2,'take face down');
-var discard = new Discard(canvas.width/3,canvas.width/4,'discard the card that you have just tooken from the face down pile');
+var discard = new Discard(canvas.width/3,canvas.width/4,'discard the card you took from the face down pile');
 //functions
 
 function resizeCanvas(){
@@ -435,12 +436,14 @@ function resizeDrawings(){
 	for(var i = 0; i < myTilesThatISomtimesLove.length; i++){
 		myTilesThatISomtimesLove[i].updateSize(myTilesThatISomtimesLove[i].xpercent,myTilesThatISomtimesLove[i].ypercent);
 	}
-	submitButton.updateSize(canvas.width/2, canvas.height-tileHeight-80, canvas.width, tileHeight);
+	submitButton.updateSize(canvas.width/2, canvas.height-30, canvas.width, tileHeight);
 	if(myTilesThatISomtimesLove.length != 0){
 		pickFromPile.updateSize(canvas.width/4,canvas.width/4,myTilesThatISomtimesLove[0].width/2,myTilesThatISomtimesLove[0].height/2);
 		discard.updateSize(canvas.width/4,canvas.width/6,myTilesThatISomtimesLove[0].width/2,myTilesThatISomtimesLove[0].height/2);
 	}
-	
+	if(tilesDiscarded != undefined){
+		tilesDiscarded.updateSize(tilesDiscarded.xpercent,tilesDiscarded.ypercent);
+	}
 }
 
 function changeName(userId){
@@ -532,7 +535,8 @@ function checkClick(event){
 	var click = {x: event.clientX*scale.x - offset.left, y: event.clientY*scale.y - offset.top};
 	console.log('adjusted click: ', click);
 	for( i = 0; i < shapes.length; i += 1){
-		for(var j = 0; j < shapes[i].length; j++){
+		for(var j = shapes[i].length - 1; j >= 0; j--){
+			//console.log(j);
 			if( shapes[i][j].clickArea ){
 				area = shapes[i][j].clickArea;
 				//console.log(area);
@@ -549,8 +553,8 @@ function checkClick(event){
 			} else {
 				console.log('no click area');
 			}
+			if(foundClick){break;}
 		}
-		if(foundClick){break;}
 	}
 	if(!foundClick){
 		selected = undefined;

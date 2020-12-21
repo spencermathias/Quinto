@@ -46,9 +46,9 @@ window.addEventListener('load', function() {
 
 $('#submit').click(function(){
 	var data = {
-		message:$('#message').val()         
+		message:$('#message').val()
 	}
-	socket.send(JSON.stringify(data)); 
+	socket.send(JSON.stringify(data));
 	$('#message').val('');
 	return false;
 });
@@ -57,18 +57,17 @@ document.getElementById('title').style.color = '#ff0000'
 function titleFunction(){
 	console.log('got in title function');
 	let title = document.getElementById('title');
-	if ( title.style.color == 'rgb(255,0,0)' ){
-		console.log('ready is true');
+	console.log(title.style.color);
+	console.log('rgb(255,0,0)');
+	if ( title.style.color == 'rgb(255, 0, 0)' ){
+		console.log('ready is false');
 		title.style.color = '#00ff00';
-		socket.emit('ready', {ready: true});
+		socket.emit('ready', true);
 	} else {
-		console.log('ready is false',title.style.color);
+		console.log('ready is true',title.style.color);
 		title.style.color = '#ff0000';
-		socket.emit('ready', {ready: false});
-		console.log('ready is false',title.style.color);
-		if(document.getElementById('title').style.color == 'rgb(255,0,0)'){
-			console.log('why isent this working');
-		}
+		socket.emit('ready', false);
+		
 	}
 	return false;
 }
@@ -140,28 +139,20 @@ class Button {
 }
 
 class Card extends Button{
-	constructor(x,text,fillColor){
-		console.log(x);
+	constructor(x,y,text,fillColor,repeat){
+		console.log('x',x);
 		//console.log(y);
 		//console.log(text);*/
 		//console.log(fillColor);
-		super(x,25,40,40,text,fillColor,undefined,'Black',undefined,20,false);
-		this.updateSize(x);
+		super(x,y,40,40,text,fillColor,undefined,'Black',undefined,20,false);
 		this.text = text;
-		this.x = x;
+		this.repeat = repeat;
 		this.visible = true;
 	}
-	updateSize(x){
-		this.width = 40;
-		this.height = 40;
-		this.x = x;
-		this.y = 25;
-		this.clickArea = {minX: x - this.width/2, minY: 25 - this.height/2, maxX: x + this.width/2, maxY: 25 + this.height/2};
-	}
+	
 	click(){
-		if(myTurn){
-			socket.emit('play the card',myTilesThatISomtimesLove[this]);
-		}
+		console.log('card clicked');
+		socket.emit('play the card',myTilesThatISomtimesLove[myTilesThatISomtimesLove.indexOf(this)]);
 	}
 }
 
@@ -206,7 +197,6 @@ socket.on('userList',function(data){
 	userList = data;
 	resizeDrawings();
 	for( var i = 0; i < data.length; i++ ){
-		tilesDiscarded = new Card(75,50,data[i].cardsInFaceUpPile);
 		var header = 'div id="userListDiv'+ i + '"';
 		var click = 'onclick="changeName(' + "'" + data[i].id + "'" + ')"';
 		var color = ' style="color: ' + data[i].color + ';"'
@@ -214,10 +204,11 @@ socket.on('userList',function(data){
 		var ender = '</div>';
 		
 		if(data[i].color != spectatorColor){
-			string = string + " " + data[i].score;
+			string = string + " ";
 			
 			if(data[i].id == socket.id){
 				if(soundsAllowed && !myTurn && data[i].color == yourTurnColor){
+					myTurn = true;
 					ding.play(); //play ding when it becomes your turn
 				} 
 				myTurn = data[i].color == yourTurnColor; //update old status
@@ -232,26 +223,33 @@ socket.on('userList',function(data){
 	}
 	document.getElementById('userlist').innerHTML = userListString;
 	//console.table(data);
-	if(myTurn){
-		pickFromPile.visible = true;
-	}
 });
 
-socket.on('cards',function(cardYouSee,yourCards){
+socket.on('cards',function(yourCards){
 	myTilesThatISomtimesLove = [];
-	//console.log(yourCards);
+	console.log(yourCards);
 	for(var i = 0;i < yourCards.length;i++){
-		var card = new Card(canvas.width / yourCards.length * i,yourCards[i].number,yourCards[i].color);
+		var card = new Card(
+			(canvas.width) / yourCards.length * (i + 1),
+			canvas.height - 50,
+			yourCards[i].number,
+			yourCards[i].color,
+			yourCards[i].repeat
+		);
+		//console.log(card);
 		myTilesThatISomtimesLove.push(card);
 		card.visible = true;
 		//console.log(canvas.width / yourCards.length * (yourCards.indexOf(card)));
 	}
-	if(cardYouSee != undefined){
-		tilesDiscarded = new Card(75,cardYouSee.number,cardYouSee.color);
-	}
 	//console.table(myTilesThatISomtimesLove);
 	//console.table(tilesDiscarded);
 	//console.log('got new data');
+});
+
+socket.on('discarded',function(cardYouSee){
+	console.log('the card discarded', cardYouSee);
+	tilesDiscarded = new Card(canvas.width/2,canvas.height/2,cardYouSee.number,cardYouSee.color);
+	console.log('after card was made',tilesDiscarded);
 });
 
 socket.on("message",function(message){
@@ -270,6 +268,16 @@ socket.on("message",function(message){
 	$('#chatlog').animate({scrollTop: 1000000});
 });
 
+function makeCard(card){
+	let newCard = new Card(
+		10,
+		20,
+		card.number,
+		card.fillColor
+	);
+	return newCard;
+}
+
 function resizeCanvas(){
 	canvas.width = window.innerWidth - $('#sidebar').width() - 50;
 	canvas.height = window.innerHeight - 2;
@@ -287,7 +295,7 @@ function resizeDrawings(){
 	board.columnThickness = tileWidth + 2*tilePadding;*/
 	
 	for(var i = 0; i < myTilesThatISomtimesLove.length; i++){
-		myTilesThatISomtimesLove[i].updateSize(myTilesThatISomtimesLove[i].xpercent,myTilesThatISomtimesLove[i].ypercent);
+		myTilesThatISomtimesLove[i].updateSize((canvas.width) / myTilesThatISomtimesLove.length * i,canvas.height - 50,40,40);
 	}
 }
 
@@ -314,9 +322,6 @@ function draw(){
 	ctx.clearRect(0,0,canvas.width, canvas.height);
 	
 	//var radius = (Math.min(canvas.width, canvas.height-140)/2)-50;
-	shapes[0].push(submitButton);
-	if(myTurn){
-	}
 	if (tilesDiscarded != undefined){
 		shapes[0].push(tilesDiscarded);
 	}
@@ -345,6 +350,8 @@ function draw(){
 	}
 	setTimeout(draw, 100); //repeat
 }
+
+draw();
 
 function checkClick(event){
 	var foundClick = false;

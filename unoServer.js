@@ -163,6 +163,7 @@ io.sockets.on("connection", function(socket) {
     socket.on("ready", function(ready) {
         if (gameStatus === gameMode.LOBBY){
             socket.userData.ready = ready;
+			console.log(socket.userData.ready);
 			if (socket.userData.ready === true) {
 				socket.userData.statusColor = readyColor;
 				updateBoard(socket, readyTitleColor , false);
@@ -177,21 +178,35 @@ io.sockets.on("connection", function(socket) {
     });
 	
 	socket.on('play the card',function(card){
-		var tilesPlayible = 0;
-		socket.userData.tiles.forEach(function(tile){
-			if(checkPlay(tile)){
-				tilesPlayible++;
-			}
-		});
-		if(tilesPlayible >= 1){
-			if(checkPlay(card)){
-				socket.userData.tiles.splice(socket.userData.tiles.indexOf(card),1);
-				deck.returncard(cardsInFaceUpPile[0]);
-				cardsInFaceUpPile.push(card);
+		console.log('play the card emited');
+		if(players[currentTurn].id == socket.id){
+			console.log('it was their turn',card);
+			
+			let tileIndex = undefined;
+			socket.userData.tiles.forEach(function(tile){
+				let z = deck.getProperties(tile);
+				if(card.fillColor == z.color){
+					if(card.text == z.number){
+						if(card.repeat == z.repeat){
+							tileIndex = socket.userData.tiles.indexOf(tile);
+							console.log(__line,tileIndex);
+						}
+					}
+				}
+			});
+			if(checkPlay(deck.getProperties(socket.userData.tiles[tileIndex]))){
+				console.log(__line,'check play was true',deck.getProperties(socket.userData.tiles[tileIndex]));
+				cardsInFaceUpPile.push(socket.userData.tiles[tileIndex]);
+				socket.userData.tiles.splice(socket.userData.tiles[tileIndex],1);
+				//deck.returncard(cardsInFaceUpPile[0]);
+				updateUsers(socket);
+				sendPlayersTiles();
+				nextTurn();
+			}else{
+				message(socket,'you must play a card of the same color or number as the one in the middle',gameErrorColor);
 			}
 		}else{
-			socket.userData.push(deck.deal());
-			message(socket,'you couldent play any of your cards so we just picked one for you',gameColor);
+			message(socket,'its not your turn',gameErrorColor);
 		}
 	});
 	
@@ -302,11 +317,17 @@ function gameStart() {
 	var playDirectionClockwise = true;
 	deck = new deckFile({color:['Green','Blue','Yellow','Red'],number:[0,1,2,3,4,5,6,7,8,9,'skip','reverse','draw 2','Wild'],repeat:[1,2]});
 	deck.shuffle(deck.length - 1);
-	var cardsInFaceUpPileForCheck = [];
-	cardsInFaceUpPileForCheck.push(deck.deal());
-	cardsInFaceUpPileForCheck.forEach(function(card){
-		cardsInFaceUpPile.push(getTileSendData(card));
+	console.log(__line,deck.pile.length);
+	deck.pile.forEach(function(card){
+		let thisCard = deck.getProperties(card);
+		console.log(__line,thisCard);
+		if(thisCard.repeat == 2){
+			if(thisCard.number == 0){
+				deck.pile.splice(card,1);
+			}
+		}
 	});
+	cardsInFaceUpPile.push(deck.deal());
 	
 	allClients.forEach(function(client){
 		if(client.userData.ready){
@@ -322,27 +343,67 @@ function gameStart() {
 	});
 	currentTurn = Math.floor(Math.random() * players.length);
 	nextTurn();
-	
-	var playersTilesForCheck = [];
-	updateBoard(io.sockets, readyTitleColor, true);
-	players.forEach(function (player){
-		playersTilesForCheck.push(deck.deal(7));
-		console.log(playersTilesForCheck);
-		playersTilesForCheck[0].forEach(function(card){
-			player.userData.tiles.push(getTileSendData(card));
-		});
-		playersTilesForCheck = [];
-		player.emit('cards',cardsInFaceUpPile[0],player.userData.tiles);
+
+	players.forEach(function(player){
+		dealTiles(player,7);
 	});
-	updateUsers();
+	updateBoard(io.sockets, readyTitleColor, true);
+	sendPlayersTiles();
+	updateTurnColor();
 	io.emit('startGame');
 }
 
+function dealTiles(player,amount){
+	let x = deck.deal(amount);
+	for(y = 0;y < x.length;y++){
+		player.userData.tiles.push(x[y]);
+		console.log(__line,x[y]);
+	}
+}
+
+function sendPlayersTiles(){
+	players.forEach(function (player){
+		let playersTiles = [];
+		let faceUpCard = [];
+		player.userData.tiles.forEach(function(tile){
+			playersTiles.push(deck.getProperties(tile));
+			console.log(__line,deck.getProperties(tile));
+		});
+		cardsInFaceUpPile.forEach(function(cardFaceUp){
+			faceUpCard.push(deck.getProperties(cardFaceUp));
+		});
+		console.log(faceUpCard);
+		console.log(__line,playersTiles);
+		player.emit('cards',playersTiles);
+		player.emit('discarded',faceUpCard[0]);
+	});
+}
+
 function checkPlay(cardToCheck){
-	if(cardToCheck.getProprities(deckFile[cardToCheck]).color == cardsInFaceUpPile[0].color || cardToCheck.number == cardsInFaceUpPile.number){
+	if(cardToCheck.color == cardsInFaceUpPile[0].color){
 		return true;
 	}else{
+		if(cardToCheck.number == cardsInFaceUpPile[0].number){
+			return true;
+		}
 		return false
+	}
+}
+
+function playersTurn(player){
+	var tilesPlayible = 0;
+	player.userData.tiles.forEach(function(tile){
+		if(checkPlay(deck.getProperties(tile))){
+			tilesPlayible++;
+			console.log(tilesPlayible);
+		}
+	});
+	if(tilesPlayible == 0){
+		player.userData.tiles.push(deck.deal());
+		message(player,'you couldent play any of your cards so we just picked one for you',gameColor);
+		sendPlayersTiles();
+		nextTurn();
+		updateUsers(player);
 	}
 }
 
@@ -410,23 +471,23 @@ function nextTurn(skipedTurn){
 	if(gameStatus == gameMode.PLAY){
 		if(playDirectionClockwise){
 			if(skipedTurn = false){
-				currentTurn = (currentTurn + 2) % players.length;
-			}else{
 				currentTurn = (currentTurn + 1) % players.length;
+			}else{
+				currentTurn = (currentTurn + 2) % players.length;
 			}
 		}else{
 			if(skipedTurn = false){
-				currentTurn = (currentTurn - 2) % players.length;
-			}else{
 				currentTurn = (currentTurn - 1) % players.length;
+			}else{
+				currentTurn = (currentTurn - 2) % players.length;
 			}
 		}
 	}else{
 		currentTurn = (currentTurn + 1) % players.length;
 	}
-	console.log(players[currentTurn]);
 	console.log("It is " + players[currentTurn].userData.userName + "'s turn!")
 	message(players[currentTurn], "It is your turn!", gameColor);
+	playersTurn(players[currentTurn]);
 	updateUsers();
 }
 

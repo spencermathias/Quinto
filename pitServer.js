@@ -101,6 +101,12 @@ io.sockets.on("connection", function(socket) {
         if(i >= 0){ allClients.splice(i, 1); }
 		var i = spectators.indexOf(socket);
         if(i >= 0){ spectators.splice(i, 1); }
+		
+		bidsForWinningScore.forEach(function(bids){
+			if(bids.id == socket.id){
+				bidsForWinningScore.splice(bids,1);
+			}
+		});
 		updateUsers();
         //players are only removed if kicked
     });
@@ -128,7 +134,26 @@ io.sockets.on("connection", function(socket) {
 	});
 	
 	socket.on('newBidForScoreToWinTheGame',function(bidToBeAdded){
-		bidsForWinningScore.push(bidToBeAdded);
+		let a = parseInt(bidToBeAdded);
+		if(a <= 500){
+			let bid = {
+				bid: a,
+				id: socket.id
+			}
+			bidsForWinningScore.forEach(function(bid){
+				if(bid.id == socket.id){
+					bidsForWinningScore.splice(bidsForWinningScore.indexOf(bid),1);
+				}
+			});
+			bidsForWinningScore.push(bid);
+		}else{
+			if(a > 500){
+				message(socket,'your bid is greater than 500 so it will not be counted.',gameErrorColor);
+			}else{
+				message(socket,'Your bid consists of caracters that are not numbers. please only insert numbers.',gameErrorColor);
+			}
+		}
+
 	});
 
     socket.on("message",function(data) {
@@ -583,11 +608,11 @@ function gameStart() {
 	io.emit('startGame');
 	newRound(undefined,undefined);
 	for(var x = 0;x < bidsForWinningScore.length;x++){
-		var a = parseInt(bidsForWinningScore[x]);
-		winningScore += a;
+		winningScore+=bidsForWinningScore[x].bid;
+		console.log(__line,winningScore);
 	}
 	winningScore = winningScore/bidsForWinningScore.length;
-	console.log(winningScore);
+	console.log(Math.ceil(winningScore));
 	message(io.sockets,'The winning score for this game is ' + winningScore, gameColor);
 }
 
@@ -702,6 +727,9 @@ function actilyGameEnd(winner) {
         client.userData.ready = false;
         client.userData.statusColor = notReadyColor;
     });
+	
+	bidsForWinningScore = [];
+	
     gameStatus = gameMode.LOBBY;
     updateUsers();
 }

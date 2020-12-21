@@ -47,16 +47,15 @@ window.addEventListener('load', function() {
   document.getElementById('gameBoard').addEventListener('click', checkClick);
   document.getElementById('title').addEventListener('click', titleFunction);
   document.getElementById('middle').addEventListener('click', allowAudio);
+  document.getElementById('buttonToChangeBid').addEventListener('click', changeBid)
 });
 
 $('#submit').click(function(){
 	var data = {
 		message:$('#message').val(),
-		vote:$('#winValueVote').val()
 	}
 	socket.send(JSON.stringify(data)); 
 	$('#message').val('');
-	$('#winValueVote').val('');
 	return false;
 });
 
@@ -573,8 +572,6 @@ socket.on('connect', function(){
 	console.log("Connection successful!");
 	if(localStorage.userName === undefined){
 		changeName(socket.id);
-		var myBid = prompt('Enter what score you want to play to. Please make it no greater than 500.');
-		socket.emit('newBidForScoreToWinTheGame',myBid);
 	} else {
 		socket.emit('userName', localStorage.userName);
 	}
@@ -583,6 +580,7 @@ socket.on('connect', function(){
 		socket.emit('oldId', localStorage.id);
 	}
 	localStorage.id = socket.id;
+	changeBid();
 });
 
 socket.on('tradeMatrix',(tradeMatrix)=>{
@@ -604,26 +602,31 @@ socket.on('startGame',()=>{
 	userList.forEach((userName,i)=> {
 		if (userName.ready){
 			tradingUi.push(new BiddingInterface(i,y,textsize));
-		}	
+		}
 		y += textsize*1.5;
 	});
 	
 	for (var i = 0;i < 10;i++){
-	var tile = new Tile(
-		(canvas.width/2) + (tileWidth + 20) * (i-2),
-		canvas.height - (tileHeight + 20),
-		tileWidth,
-		tileHeight,
-		'',
-		newTileColor,'#000000','#000000','#000000',
-		20,true
-	);
+		var tile = new Tile(
+			(canvas.width/2) + (tileWidth + 20) * (i-2),
+			canvas.height - (tileHeight + 20),
+			tileWidth,
+			tileHeight,
+			'',
+			newTileColor,'#000000','#000000','#000000',
+			20,true
+		);
 	//tile.drawOutline(placeholderColor); //placeholder outline
-	myTiles.push(tile);
+		myTiles.push(tile);
 	}
 	
 	pushProprites();
 });
+
+function changeBid(){
+	var myBid = prompt('Enter what score you want to play to. Please make it no greater than 500.');
+	socket.emit('newBidForScoreToWinTheGame',myBid);
+}
 
 function changeName(userId){
 	if(userId == socket.id){
@@ -668,6 +671,7 @@ var newServerTileColor = '#aae0b3';
 var myTurn = false;
 var myUserlistIndex = 0;
 var myUserlistString = "";
+var myBid = undefined;
 
 
 socket.on("message",function(message){  
@@ -771,6 +775,7 @@ socket.on('gameEnd',()=>{
 	});
 	myTiles = [];
 	$('#proprites').empty();
+	changeBid();
 });
 
 function updatePlayValidity(){

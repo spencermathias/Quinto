@@ -437,8 +437,6 @@ function checkStart() {
     }
 }
 
-var playerTradeMatrix = [];
-
 function gameStart() {
 	console.log(__line,"gameStart");
 	message(io.sockets, "THE GAME HAS STARTED", gameColor);
@@ -508,7 +506,9 @@ function reShuffle(){
 		let y = cardsInFaceUpPile[0];
 		cardsInFaceUpPile.splice(0,1);
 		pilesForGame[y.originalPile].push(y);
+		
 	}
+	
 	var posiblePiles = [];
 	for(let y = 0;y < pilesForGame.length;y++){
 		if(pilesForGame[y].lenth != 0){
@@ -523,9 +523,10 @@ function reShuffle(){
 function findPileToPickFrom(){
 	var posiblePiles = [];
 	for(let y = 0;y < pilesForGame.length;y++){
-		if(pilesForGame[y].lenth != 0){
+		if(pilesForGame[y].length != 0){
 			posiblePiles.push(y);
 		}
+		console.log(__line,pilesForGame[y]);
 	}
 	console.log(__line,posiblePiles);
 	if(posiblePiles.length == 0){

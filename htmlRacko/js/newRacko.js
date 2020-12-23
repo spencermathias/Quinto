@@ -1,5 +1,5 @@
 //setup window
-var publicAddress = 'http://localhost:8080/';
+var publicAddress = window.location.href;
 var internalAddress = 'http://localhost:8080/';
 
 window.addEventListener('load', function() {
@@ -183,7 +183,7 @@ class Card extends Button{
 		}
 	}
 	click(){
-		socket.emit('switch with deack',this);
+		socket.emit('switch with deack',{text:this.text,originalPile:this.originalPile});
 	}
 }
 

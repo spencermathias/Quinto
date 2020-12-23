@@ -412,7 +412,6 @@ function resizeDrawings(){
 	submitButton.updateSize(canvas.width/2, canvas.height-30, canvas.width, tileHeight);
 	if(myTilesThatISomtimesLove.length != 0){
 		pickFromPile.updateSize(canvas.width/4,canvas.width/4,myTilesThatISomtimesLove[0].width/2,myTilesThatISomtimesLove[0].height/2);
-		discard.updateSize(canvas.width/4,canvas.width/6,myTilesThatISomtimesLove[0].width/2,myTilesThatISomtimesLove[0].height/2);
 	}
 	if(tilesDiscarded != undefined){
 		tilesDiscarded.updateSize(tilesDiscarded.xpercent,tilesDiscarded.ypercent);

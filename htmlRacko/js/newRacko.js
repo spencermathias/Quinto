@@ -184,7 +184,6 @@ class Card extends Button{
 	}
 	click(){
 		socket.emit('switch with deack',this);
-		discard.visible = false;
 	}
 }
 
@@ -245,7 +244,6 @@ class PickFromPile extends Button{
 	}
 	
 	click(){
-		Discard.visible = true;
 		socket.emit('get from face down');
 		console.log('got inside the loop');
 		this.visible = false;
@@ -366,10 +364,6 @@ socket.on('cards',function(cardYouSee,yourCards){
 	console.log(myTilesThatISomtimesLove);
 	console.log(tilesDiscarded);
 	console.log('got new data');
-});
-
-socket.on('discard',function(){
-	discard.visible = !discard.visible;
 });
 
 socket.on("message",function(message){

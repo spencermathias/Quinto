@@ -183,7 +183,7 @@ class Card extends Button{
 		}
 	}
 	click(){
-		socket.emit('switch with deack',this.text,this.originalPile);
+		socket.emit('switch with deack',this);
 		discard.visible = false;
 	}
 }
@@ -211,7 +211,7 @@ class PickFromPile extends Button{
 			width = Math.min(canvas.width/2.5,canvas.height * 1.2 / 10);
 			height = width/1.3;
 		}
-		super(x,y,width,height,text,'Blue','Black','Black',undefined,15)
+		super(x,y,width,height,text,'Green','Black','Black',undefined,15)
 		this.x = x;
 		this.y = y;
 		this.text = text;
@@ -249,32 +249,6 @@ class PickFromPile extends Button{
 		socket.emit('get from face down');
 		console.log('got inside the loop');
 		this.visible = false;
-	}
-}
-
-class Discard extends Button{
-	constructor(x,y,text){
-		let width = undefined;
-		let height = undefined;
-		if (canvas.width/canvas.height > 1.25){
-			width = Math.min(canvas.width/3.5,canvas.height * 1.2 / 5);
-			height = width/1.3;
-		}else{
-			width = Math.min(canvas.width/2.5,canvas.height * 1.2 / 10);
-			height = width/1.3;
-		}
-		super(x,y,width,height,text,'Blue','Black','Black',undefined,15)
-		this.x = x;
-		this.y = y;
-		this.text = text;
-		this.clickArea = {minX: x - width/2, minY: y - height/2, maxX: x + width/2, maxY: y + height/2};
-		this.visible = false;
-	}
-	
-	click(){
-		this.selected = true;
-		this.visible = false;
-		socket.emit('discard face down');
 	}
 }
 
@@ -414,7 +388,6 @@ socket.on("message",function(message){
 	$('#chatlog').animate({scrollTop: 1000000});
 });
 var pickFromPile = new PickFromPile(canvas.width/3,canvas.width/2,'take face down');
-var discard = new Discard(canvas.width/3,canvas.width/4,'discard the card you took from the face down pile');
 //functions
 
 function resizeCanvas(){

@@ -253,12 +253,6 @@ io.sockets.on("connection", function(socket) {
 	
 	
 	
-	socket.on('discard face down',function (){
-		nextTurn();
-		players.forEach(function(player){
-			player.emit('cards',cardsInFaceUpPile[cardsInFaceUpPile.length - 1],player.userData.tiles);
-		});
-	});
 	socket.on('get from face down',()=> {
 		if(socket.userData.alreadyPicked){
 			message(socket,'you have already tooken a face down card',gameErrorColor);
@@ -280,17 +274,24 @@ io.sockets.on("connection", function(socket) {
 		cheakWin(socket);
 	});
 	
-	socket.on('switch with deack',function(number,originalPile){
+	socket.on('switch with deack',function(card){
 		console.log(__line,number,originalPile);
 		if(players[currentTurn].id == socket.id){
 			let cardIndex = undefined;
-			let card = socket.userData.tiles;
 			console.log(card);
-			for(let y = 0;y < card.length;y++){
-				if(card[y].number == number){
-					if(card[y].originalPile == originalPile){
+			for(let y = 0;y < socket.userData.tiles.length;y++){
+				if(socket.userData.tiles[y].number == card.text){
+					if(socket.userData.tiles[y].originalPile == card.originalPile){
 						cardIndex = y;
 					}
+				}
+			}
+			if(card.originalPile == cardsInFaceUpPile[cardsInFaceUpPile.length - 1].originalPile){
+				if(card.text == cardsInFaceUpPile[cardsInFaceUpPile.length - 1].number){
+					nextTurn();
+					players.forEach(function(player){
+						player.emit('cards',cardsInFaceUpPile[cardsInFaceUpPile.length - 1],player.userData.tiles);
+					});
 				}
 			}
 			let x = socket.userData.tiles[cardIndex];
@@ -378,7 +379,7 @@ function message(socket, message, color){
 		data: "" + message,
 		color: color
 	};
-	console.log(socket,message,color);
+	//console.log(socket,message,color);
 	socket.emit('message',JSON.stringify(messageObj));
 }
 

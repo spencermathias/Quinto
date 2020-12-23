@@ -463,7 +463,6 @@ function draw(){
 	shapes[0].push(submitButton);
 	if(myTurn){
 		shapes[0].push(pickFromPile);
-		shapes[0].push(discard);
 	}
 	if (tilesDiscarded != undefined){
 		shapes[0].push(tilesDiscarded);

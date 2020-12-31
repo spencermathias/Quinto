@@ -166,6 +166,15 @@ class Card extends Button{
 	}
 }
 
+class ButtonToSkipTurn extends Button{
+	constructor(){
+		super(canvas.width/4,canvas.height/2,200,200,'skip your turn and draw a card','Purple',undefined,'Yellow',undefined,20,true);
+	}
+	click(){
+		socket.emit('skip there turn');
+	}
+}
+
 class pickColorForWild extends Button{
 	constructor(x,text,fillColor){
 		super(x,canvas.width/4,40,40,text,fillColor,undefined,'Black',undefined,20);
@@ -197,6 +206,7 @@ var pickYellow = new pickColorForWild(canvas.width/5,'pick yellow','Yellow');
 var pickRed = new pickColorForWild((canvas.width/5) * 2,'pick red','Red');
 var pickGreen = new pickColorForWild((canvas.width/5) * 3,'pick green','Green');
 var pickBlue = new pickColorForWild((canvas.width/5) * 4,'pick blue','Blue');
+var skipTurn = new ButtonToSkipTurn();
 
 socket.on('showBoard',function(data){
 	console.log(data.titleColor);
@@ -345,6 +355,7 @@ function resizeDrawings(){
 	pickYellow.updateSize(canvas.width/5,canvas.width/4,40,40);
 	pickGreen.updateSize((canvas.width/5) * 3,canvas.width/4,40,40);
 	pickRed.updateSize((canvas.width/5) * 2,canvas.width/4,40,40);
+	skipTurn.updateSize(canvas.width/4,canvas.height/2,200,200);
 }
 
 function changeName(userId){
@@ -372,6 +383,9 @@ function draw(){
 	//var radius = (Math.min(canvas.width, canvas.height-140)/2)-50;
 	if (tilesDiscarded != undefined){
 		shapes[0].push(tilesDiscarded);
+	}
+	if(myTurn){
+		shapes[0].push(skipTurn);
 	}
 	shapes[0].push(pickBlue);
 	shapes[0].push(pickRed);

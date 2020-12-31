@@ -175,33 +175,24 @@ io.sockets.on("connection", function(socket) {
 	socket.on('play the card',function(card){
 		console.log('play the card emited');
 		if(players[currentTurn].id == socket.id){
-			console.log('it was their turn',card);
-			
-			let tileIndex = undefined;
-			socket.userData.tiles.forEach(function(tile){
-				let z = deck.getProperties(tile);
-				//console.log(__line,z);
-				if(card.fillColor == z.color){
-					if(card.text == z.number){
-						if(card.repeat == z.repeat){
-							tileIndex = socket.userData.tiles.indexOf(tile);
-							console.log(__line,tileIndex);
+			if(card == null){
+				message(socket,'dont click this card',gameErrorColor);
+			}else{
+				//console.log('it was their turn',card);
+				let tileIndex = undefined;
+				socket.userData.tiles.forEach(function(tile){
+					let z = deck.getProperties(tile);
+					//console.log(__line,z);
+					if(card.fillColor == z.color){
+						if(card.text == z.number){
+							if(card.repeat == z.repeat){
+								tileIndex = socket.userData.tiles.indexOf(tile);
+								//console.log(__line,tileIndex);
+							}
 						}
 					}
-				}
-			});
-			if(checkPlay(deck.getProperties(socket.userData.tiles[tileIndex]))){
-				let cardInFaceUpPile = deck.getProperties(cardsInFaceUpPile[cardsInFaceUpPile.length - 1]);
-				let cardInFaceUpPileClicked = false;
-				if(cardInFaceUpPile.color == card.fillColor){
-					if(cardInFaceUpPile.number == card.text){
-						if(cardInFaceUpPile.repeat == card.repeat){
-							message(socket,'dont click this card',gameErrorColor);
-							cardInFaceUpPileClicked = true;
-						}
-					}
-				}
-				if(!cardInFaceUpPileClicked){
+				});
+				if(checkPlay(deck.getProperties(socket.userData.tiles[tileIndex]))){
 					//console.log(__line,'check play was true',deck.getProperties(socket.userData.tiles[tileIndex]));
 					cardsInFaceUpPile.push(socket.userData.tiles[tileIndex]);
 					socket.userData.tiles.splice(tileIndex,1);
@@ -229,14 +220,14 @@ io.sockets.on("connection", function(socket) {
 							}
 						}
 					}
-				}
-				checkEnd(socket)
-				
-						
-				//deck.returncard(cardsInFaceUpPile[0]);
+					checkEnd(socket);
+					
+							
+					//deck.returncard(cardsInFaceUpPile[0]);
 
-			}else{
-				message(socket,'you must play a card of the same color or number as the one in the middle',gameErrorColor);
+				}else{
+					message(socket,'you must play a card of the same color or number as the one in the middle',gameErrorColor);
+				}
 			}
 		}else{
 			message(socket,'its not your turn',gameErrorColor);
@@ -257,6 +248,11 @@ io.sockets.on("connection", function(socket) {
 			updateUsers();
 			sendPlayersTiles();
 		}
+	});
+	
+	socket.on('skip there turn',function(){
+		dealTiles(socket.userData.tiles,1);
+		nextTurn(false,false,false);
 	});
 	
 });
@@ -483,7 +479,7 @@ function playersTurn(player){
 
 function checkEnd(player){
 	if (player.userData.tiles.length == 0){
-		gameEnd(player);
+		actuilyGameEnd(player);
 	}
 }
 
@@ -512,7 +508,7 @@ function gameEnd() {
     updateUsers();
 }
 
-function actilyGameEnd(winner) {
+function actuilyGameEnd(winner) {
     console.log(__line,"gameEnd");
     updateBoard(io.sockets, notReadyTitleColor, false);
 
@@ -559,26 +555,39 @@ function nextTurn(skipedTurn = false,draw2 = false,draw4 = false){
 		currentTurn = (currentTurn + 1) % players.length;
 	}else{
 		if(skipedTurn){
-			currentTurn = (currentTurn - 1) % players.length;
+			if(currentTurn < 1){
+				currentTurn = ((currentTurn - 1) % players.length) + players.length;
+			}else{
+				currentTurn = (currentTurn - 1) % players.length
+			}
 			message(players[currentTurn],'you were skiped',gameColor);
 		}else{
 			if(draw2){
-				currentTurn = (currentTurn - 1) % players.length;
+				if(currentTurn < 1){
+					currentTurn = ((currentTurn - 1) % players.length) + players.length;
+				}else{
+					currentTurn = (currentTurn - 1) % players.length
+				}
 				dealTiles(players[currentTurn].userData.tiles,2);
 				message(players[currentTurn],'you had to draw 2',gameColor);
 			}else{
 				if(draw4){
-					currentTurn = (currentTurn - 1) % players.length;
+					if(currentTurn < 1){
+						currentTurn = ((currentTurn - 1) % players.length) + players.length;
+					}else{
+						currentTurn = (currentTurn - 1) % players.length
+					}
 					dealTiles(players[currentTurn].userData.tiles,4);
 					message(players[currentTurn],'you had to draw 4',gameColor);
 				}
 			}
 		}
-		if(Math.sign(currentTurn -1) == -1){
+		if(currentTurn < 1){
 			currentTurn = ((currentTurn - 1) % players.length) + players.length;
 		}else{
-			currentTurn = ((currentTurn - 1) % players.length);
+			currentTurn = (currentTurn - 1) % players.length
 		}
+		console.log(__line,currentTurn);
 	}
 	console.log("It is " + players[currentTurn].userData.userName + "'s turn!")
 	message(players[currentTurn], "It is your turn!", gameColor);
@@ -593,7 +602,7 @@ function updateTurnColor(){
 			player.userData.statusColor = notYourTurnColor;
 		});
 		players[currentTurn%players.length].userData.statusColor = yourTurnColor;
-		console.log(__line,'update turn color');
+		//console.log(__line,'update turn color');
 		updateUsers();
 	}
 }

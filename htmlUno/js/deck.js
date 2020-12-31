@@ -45,16 +45,13 @@ class Deck{
 			let totalOfOtherCards = 1;
 			let currentPropertyKey = properties[i];
 			let thisPropertyKey = this.propKeys[i];
-			console.log(__line,this.cardDesc[thisPropertyKey]);
 			for(let x = i + 1;x < this.propKeys.length;x++){
 				let propertyKey = this.propKeys[x];
 				totalOfOtherCards = totalOfOtherCards * this.cardDesc[propertyKey].length;
 			}
 			if(this.cardDesc[thisPropertyKey].indexOf(properties[thisPropertyKey]) == -1){
 				return undefined;
-				console.log(__line,'come on',this.propKeys,this.cardDesc[thisPropertyKey]);
 			}else{
-				console.log('yay',this.cardDesc[thisPropertyKey].indexOf(properties[thisPropertyKey]),totalOfOtherCards)
 				id += this.cardDesc[thisPropertyKey].indexOf(properties[thisPropertyKey]) * totalOfOtherCards;
 			}
 		}

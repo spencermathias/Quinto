@@ -1,5 +1,5 @@
 //events
-var publicAddress = 'http://localhost:8080/';
+var publicAddress = 'location.href';
 var internalAddress = 'http://localhost:8080/';
 
 const buttonType = {
@@ -154,7 +154,7 @@ class Card extends Button{
 		//console.log(y);
 		//console.log(text);*/
 		//console.log(fillColor);
-		super(x,y,40,40,text,fillColor,undefined,'Black',undefined,20,false);
+		super(x,y,canvas.width/34,canvas.width/19,text,fillColor,undefined,'Black',undefined,20,false);
 		this.text = text;
 		this.repeat = repeat;
 		this.visible = true;

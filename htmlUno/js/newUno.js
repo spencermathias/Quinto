@@ -1,5 +1,5 @@
 //events
-var publicAddress = 'location.href';
+var publicAddress = 'window.location.href';
 var internalAddress = 'http://localhost:8080/';
 
 const buttonType = {

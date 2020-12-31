@@ -111,12 +111,22 @@ class Button {
 	draw(ctx){
 		if(this.visible){
 			ctx.save();
-			ctx.fillStyle = this.fillColor;
+			if(this.text == 'wild'){
+				ctx.fillStyle = 'Black';
+			}else{
+				ctx.fillStyle = this.fillColor;
+			}
+			
 			ctx.strokeStyle = this.outlineColor;
 			roundRect(ctx, this.clickArea.minX, this.clickArea.minY, this.width, this.height, this.width/8, this.fillColor != undefined, this.outlineColor != undefined);
 
 			//draw number
 			ctx.font = '' + this.fontSize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
+			if(this.text == 'wild'){
+				ctx.fillStyle = 'Yellow';
+			}else{
+				ctx.fillStyle = this.textColor;
+			}
 			ctx.fillStyle = this.textColor;
 			ctx.strokeStyle = this.textOutlineColor;
 			ctx.translate(this.x, this.y);
@@ -156,6 +166,20 @@ class Card extends Button{
 	}
 }
 
+class pickColorForWild extends Button{
+	constructor(x,text,fillColor){
+		super(x,canvas.width/4,40,40,text,fillColor,undefined,'Black',undefined,20);
+		this.visible = false;
+	}
+	click(){
+		socket.emit('wild color picked',{color: this.fillColor, type: wildType});
+		pickRed.visible = false;
+		pickBlue.visible = false;
+		pickGreen.visible = false;
+		pickYellow.visible = false;
+	}
+}
+
 var myTilesThatISomtimesLove = [];
 var shapes = [[],[],[]];
 var myTurn = false;
@@ -168,6 +192,11 @@ var tilesDiscarded = undefined;
 var spectatorColor = "#444444";
 var yourTurnColor = "#0000ff";
 var placeholderColor = '#444444';
+var wildType = undefined;
+var pickYellow = new pickColorForWild(canvas.width/5,'pick yellow','Yellow');
+var pickRed = new pickColorForWild((canvas.width/5) * 2,'pick red','Red');
+var pickGreen = new pickColorForWild((canvas.width/5) * 3,'pick green','Green');
+var pickBlue = new pickColorForWild((canvas.width/5) * 4,'pick blue','Blue');
 
 socket.on('showBoard',function(data){
 	console.log(data.titleColor);
@@ -190,6 +219,13 @@ socket.on('connect', function(){
 		socket.emit('oldId', localStorage.id);
 	}
 	localStorage.id = socket.id;
+});
+
+socket.on('startGame',function(){
+	pickYellow.visible = false;
+	pickGreen.visible = false;
+	pickBlue.visible = false;
+	pickRed.visible = false;
 });
 
 socket.on('userList',function(data){
@@ -230,7 +266,7 @@ socket.on('cards',function(yourCards){
 	console.log(yourCards);
 	for(var i = 0;i < yourCards.length;i++){
 		var card = new Card(
-			(canvas.width) / yourCards.length * (i + 1),
+			(canvas.width) / (yourCards.length + 1) * (i + 1),
 			canvas.height - 50,
 			yourCards[i].number,
 			yourCards[i].color,
@@ -244,6 +280,14 @@ socket.on('cards',function(yourCards){
 	//console.table(myTilesThatISomtimesLove);
 	//console.table(tilesDiscarded);
 	//console.log('got new data');
+});
+
+socket.on('wild card played',function(wildTypePlayed){
+	pickRed.visible = true;
+	pickBlue.visible = true;
+	pickGreen.visible = true;
+	pickYellow.visible = true;
+	wildType = wildTypePlayed;
 });
 
 socket.on('discarded',function(cardYouSee){
@@ -295,8 +339,12 @@ function resizeDrawings(){
 	board.columnThickness = tileWidth + 2*tilePadding;*/
 	
 	for(var i = 0; i < myTilesThatISomtimesLove.length; i++){
-		myTilesThatISomtimesLove[i].updateSize((canvas.width) / myTilesThatISomtimesLove.length * i,canvas.height - 50,40,40);
+		myTilesThatISomtimesLove[i].updateSize((canvas.width) / (myTilesThatISomtimesLove.length + 1) * (i + 1),canvas.height - 50,40,40);
 	}
+	pickBlue.updateSize((canvas.width/5) * 4,canvas.width/4,40,40);
+	pickYellow.updateSize(canvas.width/5,canvas.width/4,40,40);
+	pickGreen.updateSize((canvas.width/5) * 3,canvas.width/4,40,40);
+	pickRed.updateSize((canvas.width/5) * 2,canvas.width/4,40,40);
 }
 
 function changeName(userId){
@@ -325,6 +373,10 @@ function draw(){
 	if (tilesDiscarded != undefined){
 		shapes[0].push(tilesDiscarded);
 	}
+	shapes[0].push(pickBlue);
+	shapes[0].push(pickRed);
+	shapes[0].push(pickYellow);
+	shapes[0].push(pickGreen);
 	//player tiles
 	for(var i = 0; i < myTilesThatISomtimesLove.length; i++){
 		//if(myTurn){

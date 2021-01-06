@@ -61,12 +61,12 @@ console.log("Server Started!");
 
 function defaultUserData(){
 	return {
-		//score: 0,
 		userName: "Unknown",
 		tiles: [],
 		statusColor: notReadyColor,
 		ready: false,
-		alreadyPicked: false
+		alreadyPicked: false,
+		unoTyped: false
 	}
 }
 
@@ -125,7 +125,7 @@ io.sockets.on("connection", function(socket) {
         /*Printing the data */
 		message( socket, "You: " + data.message, chatColor);
 		message( socket.broadcast, "" + socket.userData.userName + ": " + data.message, chatColor);
-
+		
         if(data.message === "end") {
             console.log(__line,"forced end");
             gameEnd(undefined);
@@ -143,6 +143,28 @@ io.sockets.on("connection", function(socket) {
 			if( players.length < minPlayers) {
 				gameEnd(undefined);
 			} 
+		}else{
+			if(data.message.toLowerCase() == 'uno'){
+				console.log(__line,'uno was typed');
+				let playerWithUno = [];
+				players.forEach(function(player){
+					if(player.userData.tiles.length == 1){
+						playerWithUno.push(player);
+					}
+				});
+				if(playerWithUno.indexOf(socket) != -1){
+					socket.userData.unoTyped = true;
+				}else{
+					playerWithUno.forEach(function(player){
+						if(player.userData.unoTyped == false){
+							dealTiles(player.userData.tiles,2);
+							message(player,socket.userData.userName + ' typed uno before you',gameErrorColor);
+							updateUsers();
+							sendPlayersTiles();
+						}
+					});
+				}
+			}
 		}
         /*Sending the Acknowledgement back to the client , this will trigger "message" event on the clients side*/
     });
@@ -178,39 +200,43 @@ io.sockets.on("connection", function(socket) {
 			if(card == null){
 				message(socket,'dont click this card',gameErrorColor);
 			}else{
-				//console.log('it was their turn',card);
+				console.log('it was their turn',card);
 				let tileIndex = undefined;
 				socket.userData.tiles.forEach(function(tile){
 					let z = deck.getProperties(tile);
-					//console.log(__line,z);
-					if(card.fillColor == z.color){
-						if(card.text == z.number){
+					console.log(__line,z,tile);
+					if(card.originalColor == z.color){
+						if(card.originalNumber == z.number){
 							if(card.repeat == z.repeat){
 								tileIndex = socket.userData.tiles.indexOf(tile);
-								//console.log(__line,tileIndex);
+								console.log(__line,tileIndex);
 							}
 						}
 					}
 				});
+				console.log(__line,checkPlay(deck.getProperties(socket.userData.tiles[tileIndex])));
+				console.log(__line,tileIndex);
 				if(checkPlay(deck.getProperties(socket.userData.tiles[tileIndex]))){
 					//console.log(__line,'check play was true',deck.getProperties(socket.userData.tiles[tileIndex]));
 					cardsInFaceUpPile.push(socket.userData.tiles[tileIndex]);
 					socket.userData.tiles.splice(tileIndex,1);
-					if(card.text == 'skip'){
+					checkEnd(socket);
+					let thisCard = deck.getProperties(cardsInFaceUpPile[cardsInFaceUpPile.length - 1]);
+					if(card.originalNumber == 'skip'){
 						doActionCard(deck.getProperties(socket.userData.tiles[tileIndex]),'skip',socket);
-						//console.log(__line,'got in the loop for skip');
+						console.log(__line,'got in the loop for skip',deck.getProperties(socket.userData.tiles[tileIndex]));
 					}else{
-						if(card.text == 'reverse'){
-							doActionCard(deck.getProperties(socket.userData.tiles[tileIndex]),'reverse',socket);
+						if(card.originalNumber == 'reverse'){
+							doActionCard(thisCard,'reverse',socket);
 							//console.log(__line,'got in the loop for reverse');
 						}else{
-							if(card.text == 'draw 2'){
-								doActionCard(deck.getProperties(socket.userData.tiles[tileIndex]),'draw2',socket);
+							if(card.originalNumber == 'draw 2'){
+								doActionCard(thisCard,'draw2',socket);
 								//console.log(__line,'got in the loop for draw 2');
 							}else{
-								if(card.text == 'Wild'){
-									doActionCard(deck.getProperties(socket.userData.tiles[tileIndex]),'wild',socket);
-									//console.log(__line,'got in the loop for wild');
+								if(card.originalNumber == 'Wild'){
+									doActionCard(thisCard,'wild',socket);
+									console.log(__line,'got in the loop for wild',thisCard);
 								}else{
 									updateUsers();
 									sendPlayersTiles();
@@ -220,11 +246,6 @@ io.sockets.on("connection", function(socket) {
 							}
 						}
 					}
-					checkEnd(socket);
-					
-							
-					//deck.returncard(cardsInFaceUpPile[0]);
-
 				}else{
 					message(socket,'you must play a card of the same color or number as the one in the middle',gameErrorColor);
 				}
@@ -236,7 +257,8 @@ io.sockets.on("connection", function(socket) {
 	
 	socket.on('wild color picked',function(wildCard){
 		cardsInFaceUpPile.splice(cardsInFaceUpPile.length - 1,1);
-		if(wildCard.type = 'wildDraw4'){
+		console.log(__line,wildCard);
+		if(wildCard.type == 'wildDraw4'){
 			console.log(__line,deck.getCardId({color:wildCard.color,number:'Wild',repeat:2}));
 			cardsInFaceUpPile.push(deck.getCardId({color:wildCard.color,number:'Wild',repeat:2}));
 			nextTurn(false,false,true);
@@ -253,6 +275,7 @@ io.sockets.on("connection", function(socket) {
 	socket.on('skip there turn',function(){
 		dealTiles(socket.userData.tiles,1);
 		nextTurn(false,false,false);
+		sendPlayersTiles();
 	});
 	
 });
@@ -264,36 +287,45 @@ function reshuffle(){
 }
 
 function doActionCard(card,type,player){
-	//console.log(__line,'why are we in here')
-	if(type == 'wild'){
-		console.log('got into wild in the doActionCard function');
-		if(card.repeat == 1){
-			wild(player,'wild');
-			console.log(__line,'this is a wild draw 4');
-		}else{
-			wild(player,'wildDraw4');
+	if(gameStatus == gameMode.PLAY){
+		console.log(__line,'why are we in here')
+		if(type == 'wild'){
+			console.log('got into wild in the doActionCard function',card);
+			if(card.repeat == 1){
+				wild(player,'wild');
+				console.log(__line,'this is a wild draw 4');
+			}else{
+				wild(player,'wildDraw4');
+			}
+			updateUsers(player);
+			sendPlayersTiles(player);
+		}
+		if(type == 'skip'){
+			console.log('got into skip in the doActionCard function');
+			nextTurn(true,false,false);
+			updateUsers();
+			sendPlayersTiles();
+		}
+		if(type == 'draw2'){
+			nextTurn(false,true,false);
+			updateUsers();
+			sendPlayersTiles();
+			console.log('got into draw 2 in the doActionCard function');
+		}
+		if(type == 'reverse'){
+			playDirectionClockwise = !playDirectionClockwise;
+			nextTurn(false,false,false);
+			updateUsers();
+			sendPlayersTiles();
+			console.log('this is the reverse function');
 		}
 	}
-	if(type == 'skip'){
-		nextTurn(true,false,false);
-		console.log('got into skip in the doActionCard function');
-	}
-	if(type == 'draw2'){
-		nextTurn(false,true,false);
-		console.log('got into draw 2 in the doActionCard function');
-	}
-	if(type == 'reverse'){
-		playDirectionClockwise = !playDirectionClockwise;
-		nextTurn(false,false,false);
-		console.log('this is the reverse function');
-	}
-	updateUsers();
-	sendPlayersTiles();
 }
 
 function wild(player,wildType){                                                                      
 	player.userData.alreadyPicked = false;
 	player.emit('wild card played',wildType);
+	console.log(wildType);
 }
 
 function message(socket, message, color){
@@ -373,6 +405,7 @@ function gameStart() {
 	deck = new deckFile({color:['Green','Blue','Yellow','Red'],number:[0,1,2,3,4,5,6,7,8,9,'skip','reverse','draw 2','Wild'],repeat:[1,2]});
 	deck.shuffle(deck.length - 1);
 	console.log(__line,deck.pile.length);
+	gameStatus = gameMode.PLAY;
 	deck.pile.forEach(function(card){
 		let thisCard = deck.getProperties(card);
 		//console.log(__line,thisCard);
@@ -421,26 +454,35 @@ function dealTiles(array,amount){
 	}
 }
 
-function sendPlayersTiles(){
-	players.forEach(function (player){
+function sendPlayersTiles(player = allClients){
+	if(player == allClients){
+		players.forEach(function (player){
+			let playersTiles = [];
+			let faceUpCard = [];
+			player.userData.tiles.forEach(function(tile){
+				playersTiles.push(deck.getProperties(tile));
+				//console.log(__line,deck.getProperties(tile));
+			});
+			cardsInFaceUpPile.forEach(function(cardFaceUp){
+				faceUpCard.push(deck.getProperties(cardFaceUp));
+			});
+			//console.log(faceUpCard);
+			//console.log(__line,playersTiles);
+			player.emit('cards',playersTiles);
+			player.emit('discarded',faceUpCard[cardsInFaceUpPile.length - 1]);
+		});
+	}else{
 		let playersTiles = [];
-		let faceUpCard = [];
-		player.userData.tiles.forEach(function(tile){
-			playersTiles.push(deck.getProperties(tile));
-			//console.log(__line,deck.getProperties(tile));
+		player.userData.tiles.forEach(function(card){
+			playersTiles.push(deck.getProperties(card));
 		});
-		cardsInFaceUpPile.forEach(function(cardFaceUp){
-			faceUpCard.push(deck.getProperties(cardFaceUp));
-		});
-		//console.log(faceUpCard);
-		//console.log(__line,playersTiles);
 		player.emit('cards',playersTiles);
-		player.emit('discarded',faceUpCard[cardsInFaceUpPile.length - 1]);
-	});
+		player.emit('discarded',deck.getProperties(cardsInFaceUpPile[cardsInFaceUpPile.length - 1]));
+	}
 }
 
 function checkPlay(cardToCheck){
-	//console.log(cardToCheck);
+	console.log(__line,cardToCheck);
 	if(cardToCheck.color == deck.getProperties(cardsInFaceUpPile[cardsInFaceUpPile.length - 1]).color){
 		return true;
 	}else{
@@ -450,9 +492,11 @@ function checkPlay(cardToCheck){
 		}else{
 			if(cardToCheck.number == 'Wild'){
 				return true;
+			}else{
+				console.log('why are we in here');
+				return false;
 			}
 		}
-		return false
 	}
 }
 
@@ -488,19 +532,11 @@ function gameEnd() {
     updateBoard(io.sockets, notReadyTitleColor, false);
 
 	message(io.sockets, "THE GAME HAS ENDED", gameColor);
-	message(io.sockets, "Scores: ", gameColor);
-	let total = 0;
-	for( var i = 0; i < players.length; i += 1){
-		message(io.sockets, players[i].userData.userName + ": " + players[i].userData.score + "\n", gameColor);
-		total += players[i].userData.score;
-	}
-	message(io.sockets, "Total score: " + total, gameColor);
 	io.emit('gameEnd');
 	
     players = [];
 	spectators = [];
     allClients.forEach(function(client) {
-		
         client.userData.ready = false;
         client.userData.statusColor = notReadyColor;
     });
@@ -513,13 +549,6 @@ function actuilyGameEnd(winner) {
     updateBoard(io.sockets, notReadyTitleColor, false);
 
 	message(io.sockets, "THE GAME HAS ENDED", gameColor);
-	message(io.sockets, "Scores: ", gameColor);
-	let total = 0;
-	for( var i = 0; i < players.length; i += 1){
-		message(io.sockets, players[i].userData.userName + ": " + players[i].userData.score + "\n", gameColor);
-		total += players[i].userData.score;
-	}
-	message(io.sockets, "Total score: " + total, gameColor);
 	message(io.sockets,'The winner is ' + winner.userData.userName +'!',gameColor)
 	io.emit('gameEnd');
 	
@@ -534,7 +563,19 @@ function actuilyGameEnd(winner) {
     updateUsers();
 }
 
-function nextTurn(skipedTurn = false,draw2 = false,draw4 = false){
+function nextTurn(skipedTurn,draw2,draw4){
+	players[currentTurn].userData.unoTyped = false;
+	if(players[currentTurn].userData.tiles.length == 1){
+		let playersToWarn = [];
+		players.forEach(function(player){
+			if(player.id != players[currentTurn].id){
+				playersToWarn.push(player);
+			}
+		});
+		playersToWarn.forEach(function(player){
+			message(player,players[currentTurn].userData.userName + ' has uno',gameColor);
+		});
+	}
 	if(playDirectionClockwise){
 		if(skipedTurn){
 			currentTurn = (currentTurn + 1) % players.length;
@@ -594,6 +635,7 @@ function nextTurn(skipedTurn = false,draw2 = false,draw4 = false){
 	playersTurn(players[currentTurn]);
 	updateTurnColor();
 	updateUsers();
+	players[currentTurn].emit('my turn');
 }
 
 function updateTurnColor(){

@@ -111,22 +111,12 @@ class Button {
 	draw(ctx){
 		if(this.visible){
 			ctx.save();
-			if(this.text == 'wild'){
-				ctx.fillStyle = 'Black';
-			}else{
-				ctx.fillStyle = this.fillColor;
-			}
-			
+			ctx.fillStyle = this.fillColor;
 			ctx.strokeStyle = this.outlineColor;
 			roundRect(ctx, this.clickArea.minX, this.clickArea.minY, this.width, this.height, this.width/8, this.fillColor != undefined, this.outlineColor != undefined);
 
 			//draw number
 			ctx.font = '' + this.fontSize + "px Arimo" //Arial Black, Gadget, Arial, sans-serif";
-			if(this.text == 'wild'){
-				ctx.fillStyle = 'Yellow';
-			}else{
-				ctx.fillStyle = this.textColor;
-			}
 			ctx.fillStyle = this.textColor;
 			ctx.strokeStyle = this.textOutlineColor;
 			ctx.translate(this.x, this.y);
@@ -149,14 +139,16 @@ class Button {
 }
 
 class Card extends Button{
-	constructor(x,y,text,fillColor,repeat){
+	constructor(x,y,text,fillColor,repeat,originalColor,originalNumber){
 		console.log('x',x);
 		//console.log(y);
 		//console.log(text);*/
 		//console.log(fillColor);
-		super(x,y,canvas.width/34,canvas.width/19,text,fillColor,undefined,'Black',undefined,20,false);
+		super(x,y,canvas.width/34,canvas.width/19,text,fillColor,undefined,'#da70d6',undefined,20,false);
 		this.text = text;
 		this.repeat = repeat;
+		this.originalColor = originalColor;
+		this.originalNumber = originalNumber;
 		this.visible = true;
 	}
 	
@@ -271,16 +263,43 @@ socket.on('userList',function(data){
 	//console.table(data);
 });
 
+socket.on('my turn',function(){
+	skipTurn.visible = true;
+});
+
 socket.on('cards',function(yourCards){
 	myTilesThatISomtimesLove = [];
-	console.log(yourCards);
+	//console.log(yourCards);
 	for(var i = 0;i < yourCards.length;i++){
+		let fillColor = yourCards[i].color;
+		let text = yourCards[i].number;
+		if(yourCards[i].number == 'Wild'){
+			if(yourCards[i].repeat == 2){
+				text = 'Wild x4'
+			}
+			fillColor = 'Black';
+		}
+		let amountInRow = undefined;
+		let numberOfRows = Math.ceil(yourCards.length / 8);
+		let row = Math.floor(i / 8) + 1;
+		let rowIndex = i % 8;
+		if(row == numberOfRows){
+			if(yourCards.length % 8 == 0){
+				amountInRow = 8;
+			}else{
+				amountInRow = yourCards.length % 8;
+			}
+		}else{
+			amountInRow = 8;
+		}
 		var card = new Card(
-			(canvas.width) / (yourCards.length + 1) * (i + 1),
-			canvas.height - 50,
-			yourCards[i].number,
+			(canvas.width) / (amountInRow + 1) * (rowIndex + 1),
+			canvas.height - ((canvas.height / 10) * row),
+			text,
+			fillColor,
+			yourCards[i].repeat,
 			yourCards[i].color,
-			yourCards[i].repeat
+			yourCards[i].number
 		);
 		//console.log(card);
 		myTilesThatISomtimesLove.push(card);
@@ -298,6 +317,8 @@ socket.on('wild card played',function(wildTypePlayed){
 	pickGreen.visible = true;
 	pickYellow.visible = true;
 	wildType = wildTypePlayed;
+	console.log('why isent this running');
+	skipTurn.visible = false;
 });
 
 socket.on('discarded',function(cardYouSee){
@@ -318,7 +339,7 @@ socket.on("message",function(message){
 	
 	$('#chatlog').append('<div style="color:'+message.color+'">'+message.data+'</div>'); /*appending the data on the page using Jquery */
 	$('#response').text(message.data);
-	//$('#chatlog').scroll();
+	$('#chatlog').scroll();
 	$('#chatlog').animate({scrollTop: 1000000});
 });
 
@@ -349,13 +370,27 @@ function resizeDrawings(){
 	board.columnThickness = tileWidth + 2*tilePadding;*/
 	
 	for(var i = 0; i < myTilesThatISomtimesLove.length; i++){
-		myTilesThatISomtimesLove[i].updateSize((canvas.width) / (myTilesThatISomtimesLove.length + 1) * (i + 1),canvas.height - 50,40,40);
+		let amountInRow = undefined;
+		let numberOfRows = Math.ceil(myTilesThatISomtimesLove.length / 8);
+		let row = Math.floor(i / 8) + 1;
+		let rowIndex = i % 8;
+		if(row == numberOfRows){
+			if(myTilesThatISomtimesLove.length % 8 == 0){
+				amountInRow = 8;
+			}else{
+				amountInRow = myTilesThatISomtimesLove.length % 8;
+			}
+		}else{
+			amountInRow = 8;
+		}
+		myTilesThatISomtimesLove[i].updateSize((canvas.width) / (amountInRow + 1) * (rowIndex + 1),canvas.height - ((canvas.height / 10) * row),canvas.width/34,canvas.width/19);
+		console.log('things',myTilesThatISomtimesLove.length - (myTilesThatISomtimesLove.length - ((row - 1) * 8) - (myTilesThatISomtimesLove.length - (row * 8))))
 	}
-	pickBlue.updateSize((canvas.width/5) * 4,canvas.width/4,40,40);
-	pickYellow.updateSize(canvas.width/5,canvas.width/4,40,40);
-	pickGreen.updateSize((canvas.width/5) * 3,canvas.width/4,40,40);
-	pickRed.updateSize((canvas.width/5) * 2,canvas.width/4,40,40);
-	skipTurn.updateSize(canvas.width/4,canvas.height/2,200,200);
+	pickBlue.updateSize((canvas.width/5) * 4,canvas.width/4,canvas.width/34,canvas.width/19);
+	pickYellow.updateSize(canvas.width/5,canvas.width/4,canvas.width/34,canvas.width/19);
+	pickGreen.updateSize((canvas.width/5) * 3,canvas.width/4,canvas.width/34,canvas.width/19);
+	pickRed.updateSize((canvas.width/5) * 2,canvas.width/4,canvas.width/34,canvas.width/19);
+	skipTurn.updateSize(canvas.width/4,canvas.height/2,(canvas.width/34) * 5,(canvas.width/19) * 5);
 }
 
 function changeName(userId){

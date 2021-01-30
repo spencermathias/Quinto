@@ -491,7 +491,7 @@ function gameStart() {
 			spectators.push(client);
 		}
 	});
-	console.log(players)
+	//console.log(players);
 	
 	nextRound();
 	updateBoard(io.sockets, readyTitleColor, true);
@@ -520,9 +520,9 @@ function nextRound(){
 	}
 	cardsInFaceUpPile = [];
 	dealTiles(cardsInFaceUpPile,1);
-	console.log(__line,players);
+	//console.log(__line,players);
 	currentTurn = Math.floor(Math.random() * players.length);
-	console.log(__line,currentTurn,players);
+	//console.log(__line,currentTurn,players);
 	players.forEach(function(player){
 		player.userData.tiles = [];
 		player.userData.cardsPlayedDown = [];
@@ -563,7 +563,22 @@ function dealTiles(array,amount){
 }
 
 function checkEnd(){
-	
+	let scoresToWin = [];
+	players.forEach(function(player){
+		if(player.userData.score == 1000){
+			scoresToWin.push(player.userData.score);
+		}
+	});
+	if(scoresToWin.length > 0){
+		let winningScore = scoresToWin.max();
+		let winningPlayer = undefined;
+		players.forEach(function(player){
+			if(player.userData.score == winningScore){
+				winningPlayer = player;
+			}
+		});
+		actuilyGameEnd(winningPlayer);
+	}
 }
 
 function gameEnd() {

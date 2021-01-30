@@ -1,0 +1,15 @@
+{
+  "name": "jasmineTest",
+  "version": "0.0.2",
+  "description": "testing jasmine",
+  "main": "uno.js",
+  "devDependencies": {
+    "jasmine": "^3.6.3"
+  },
+  "scripts": {
+    "test": "jasmine"
+  },
+  "author": "Samuel and Spencer Mathias",
+  "license": "ISC",
+  "homepage": "https://github.com/flagstone78/RPi-RTDS#readme"
+}

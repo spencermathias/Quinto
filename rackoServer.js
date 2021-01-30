@@ -452,7 +452,6 @@ function gameStart() {
 	spectators = [];
 	
 
-	currentTurn = Math.floor(Math.random()*players.length); //random starting person
 	allClients.forEach(function(client){
 		if(client.userData.ready){
 			client.userData.statusColor = notYourTurnColor;
@@ -466,6 +465,8 @@ function gameStart() {
 			spectators.push(client);
 		}
 	});
+	currentTurn = Math.floor(Math.random()*players.length); //random starting person
+
 	
 	pilesNeeded = Math.ceil(((players.length * 10) + 1)/60);
 	pushPilesNeeded();

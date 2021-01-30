@@ -1,0 +1,6 @@
+ERORS
+ 
+TODO
+ -make meseges for when a person defends with a card
+ -look at check end funtion and come up with a easier way
+ 

@@ -1,7 +1,3 @@
 ERORS
- -side bar chat bar is to low
- -does not pick up top card when top card is a gold or silver
 TODO
- -make meseges for when a person defends with a card
- -look at check end funtion and come up with a easier way
- 
+ -check if check end function works when somone has won the game

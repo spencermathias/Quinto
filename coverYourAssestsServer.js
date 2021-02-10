@@ -397,7 +397,7 @@ io.sockets.on("connection", function(socket) {
 								}
 							}
 						});
-						message(otherPlayer,socket.userData.userName + 'defended with a ' + pileValueFound,gameColor);
+						message(otherPlayer,socket.userData.userName + ' defended with a ' + pileValueFound,gameColor);
 					}else{
 						message(socket,'you have to defend with a card that is the same comonity as the one tring to be stolan',gameErrorColor);
 					}

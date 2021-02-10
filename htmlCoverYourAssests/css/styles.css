@@ -37,8 +37,9 @@ body {
 	color:#FFFFFF;
 }
 
-#peoplesTopPiles{
-	overflow:auto;
+#peoplesTopPiles:hover{
+	overflow-y:auto;
+	overflow-x:auto;
 }
 
 #gameAndOverlay{
@@ -118,7 +119,7 @@ body {
 }
 
 #chat{
-	height: 75vh;
+	height: 73vh;
 }
 
 #chatlog{

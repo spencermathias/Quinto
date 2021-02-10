@@ -140,10 +140,12 @@ io.sockets.on("connection", function(socket) {
 					message( io.sockets, "" + players[i].userData.userName + " has been kicked!", chatColor);
 					players.splice(i, 1);
 				}
+				currentTurn = currentTurn % players.length;
+				updateUsers();
 			}
 			if( players.length < minPlayers) {
 				gameEnd(undefined);
-			} 
+			}
 		}
         /*Sending the Acknowledgement back to the client , this will trigger "message" event on the clients side*/
     });
@@ -195,15 +197,22 @@ io.sockets.on("connection", function(socket) {
 				if(myStatus == biddingTurn){
 					let player = undefined;
 					for(let x = 0;x < players.length;x++){
-						if(players[x].userData.defendent){
+						console.log(biddingTurn,players[x].userData)
+						if(players[x].userData.defendent && biddingTurn == 'oponint'){
 							player = players[x];
+						}else{
+							if(players[x].userData.oponint && biddingTurn == 'defendent'){
+								player = players[x];
+							}
 						}
 					}
+					console.log(player.userData);
 					player.userData.cardsPlayedDown.push(biddingPile);
 					biddingPile = [];
 					nextTurn();
 					updateUsers();
 					stealAtemptInProgress = false;
+					biddingTurn = 'defendent';
 				}else{
 					message(socket,'it is not your turn to defend',gameErrorColor);
 				}
@@ -253,7 +262,7 @@ io.sockets.on("connection", function(socket) {
 				if((faceUp == 'Gold' || faceUp == 'Silver') && (selected == 'Gold' || selected == 'Silver')){
 					message(socket,'you have to include 1 card that is not gold or silver',gameErrorColor);
 				}else{
-					if(selected == faceUp || selected == 'Gold' || selected == 'Silver' || faceUp == 'Gold' || selected == 'Silver'){
+					if(selected == faceUp || selected == 'Gold' || selected == 'Silver' || faceUp == 'Gold' || faceUp == 'Silver'){
 						let newSet = [];
 						console.log('waho we are in here');
 						newSet.push(cardsInFaceUpPile[cardsInFaceUpPile.length - 1]);
@@ -595,6 +604,7 @@ function gameEnd() {
         client.userData.statusColor = notReadyColor;
     });
     gameStatus = gameMode.LOBBY;
+	io.emit('gameEnd')
     updateUsers();
 }
 
@@ -637,18 +647,18 @@ function restoreCards(){
 }
 
 function nextTurn(){
-	console.log(players)
+	//console.log(players)
 	players.forEach(function(player){
 		player.userData.oponint = false;
 		player.userData.defendent = false;
 	});
-	console.log(__line,currentTurn,players)
+	//console.log(__line,currentTurn,players)
 	currentTurn = (currentTurn + 1) % players.length;
 	console.log(currentTurn)
 	if(currentTurn == originalCurrentTurn){
 		restoreCards();
 	}
-	console.log(__line,currentTurn);
+	//console.log(__line,currentTurn);
 	if(players[currentTurn].userData.tiles.length == 0){
 		players[currentTurn].userData.skiped = true;
 		let playersSkiped = 0;

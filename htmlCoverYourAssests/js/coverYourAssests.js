@@ -55,16 +55,16 @@ $('#submit').click(function(){
 
 document.getElementById('title').style.color = '#ff0000'
 function titleFunction(){
-	console.log('got in title function');
+	//console.log('got in title function');
 	let title = document.getElementById('title');
-	console.log(title.style.color);
-	console.log('rgb(255,0,0)');
+	//console.log(title.style.color);
+	//console.log('rgb(255,0,0)');
 	if ( title.style.color == 'rgb(255, 0, 0)' ){
-		console.log('ready is false');
+		//console.log('ready is false');
 		title.style.color = '#00ff00';
 		socket.emit('ready', true);
 	} else {
-		console.log('ready is true',title.style.color);
+		//console.log('ready is true',title.style.color);
 		title.style.color = '#ff0000';
 		socket.emit('ready', false);
 		
@@ -247,7 +247,7 @@ var placeholderColor = '#444444';
 var SubmitButton = new submitButton();
 
 socket.on('showBoard',function(data){
-	console.log(data.titleColor);
+	//console.log(data.titleColor);
 	$('#title').css('color', data.titleColor);
 	$('#content').css('display', data.displayTitle);
 	$('#gameBoard').css('display', data.displayGame);
@@ -267,10 +267,6 @@ socket.on('connect', function(){
 		socket.emit('oldId', localStorage.id);
 	}
 	localStorage.id = socket.id;
-});
-
-socket.on('startGame',function(){
-	
 });
 
 socket.on('userList',function(data){
@@ -354,7 +350,7 @@ socket.on('discarded',function(cardYouSee){
 	}else{
 		tilesDiscarded = new Card(canvas.width / 2,canvas.height / 2,'');
 	}
-	console.log('after card was made',tilesDiscarded);
+	//console.log('after card was made',tilesDiscarded);
 });
 
 socket.on("message",function(message){
@@ -371,6 +367,10 @@ socket.on("message",function(message){
 	$('#response').text(message.data);
 	$('#chatlog').scroll();
 	$('#chatlog').animate({scrollTop: 1000000});
+});
+
+socket.on('gameEnd',function(){
+	$('#comonities').empty();
 });
 
 function makePlayersPiles(socket){
@@ -390,7 +390,7 @@ function makePlayersPiles(socket){
 			let thisPileComonity = undefined;
 			if(userList[i].thisLength != 0){
 				for(let x = 0;x < userList[i].cardsPlayedDown.length;x++){
-					if(deck.getProperties(userList[i].cardsPlayedDown[x]).comonity != 'Gold' && deck.getProperties(userList[i].cardsPlayedDown[x]).comonity == 'Silver'){
+					if(deck.getProperties(userList[i].cardsPlayedDown[x]).comonity != 'Gold' && deck.getProperties(userList[i].cardsPlayedDown[x]).comonity != 'Silver'){
 						thisPileComonity = deck.getProperties(userList[i].cardsPlayedDown[x]).comonity;
 					}
 				}
@@ -685,7 +685,7 @@ function checkClick(event){
 	//console.log('click', {x: event.clientX, y: event.clientY});
 	//console.log('scale:', scale)
 	var click = {x: event.clientX*scale.x - offset.left, y: event.clientY*scale.y - offset.top};
-	console.log('adjusted click: ', click);
+	//console.log('adjusted click: ', click);
 	for( i = 0; i < shapes.length; i += 1){
 		for(var j = 0; j < shapes[i].length; j++){
 			if( shapes[i][j].clickArea ){

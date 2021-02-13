@@ -66,8 +66,7 @@ function defaultUserData(){
 		score:0,
 		cardsPlayedDown: [],
 		oponint: false,
-		defendent: false,
-		skiped:false
+		defendent: false
 	}
 }
 
@@ -197,7 +196,7 @@ io.sockets.on("connection", function(socket) {
 				if(myStatus == biddingTurn){
 					let player = undefined;
 					for(let x = 0;x < players.length;x++){
-						console.log(biddingTurn,players[x].userData)
+						//console.log(biddingTurn,players[x].userData)
 						if(players[x].userData.defendent && biddingTurn == 'oponint'){
 							player = players[x];
 						}else{
@@ -206,7 +205,7 @@ io.sockets.on("connection", function(socket) {
 							}
 						}
 					}
-					console.log(player.userData);
+					//console.log(player.userData);
 					player.userData.cardsPlayedDown.push(biddingPile);
 					biddingPile = [];
 					nextTurn();
@@ -264,7 +263,7 @@ io.sockets.on("connection", function(socket) {
 				}else{
 					if(selected == faceUp || selected == 'Gold' || selected == 'Silver' || faceUp == 'Gold' || faceUp == 'Silver'){
 						let newSet = [];
-						console.log('waho we are in here');
+						//console.log('waho we are in here');
 						newSet.push(cardsInFaceUpPile[cardsInFaceUpPile.length - 1]);
 						cardsInFaceUpPile.splice(cardsInFaceUpPile.length - 1,1);
 						newSet.push(cardsSelected[0]);
@@ -316,7 +315,7 @@ io.sockets.on("connection", function(socket) {
 									pileValueFound = deck.getProperties(card).comonity;
 								}
 							});
-							console.log(pileValueFound,deck.getProperties(cardsSelected[0]));
+							//console.log(pileValueFound,deck.getProperties(cardsSelected[0]));
 							if(deck.getProperties(cardsSelected[0]).comonity == 'Gold' || deck.getProperties(cardsSelected[0]).comonity == 'Silver' || deck.getProperties(cardsSelected[0]).comonity == pileValueFound){
 								//console.log(pileValueFound)
 								biddingPile.push(cardsSelected[0]);
@@ -574,12 +573,12 @@ function dealTiles(array,amount){
 function checkEnd(){
 	let scoresToWin = [];
 	players.forEach(function(player){
-		if(player.userData.score == 1000){
+		if(player.userData.score >= 100){
 			scoresToWin.push(player.userData.score);
 		}
 	});
 	if(scoresToWin.length > 0){
-		let winningScore = scoresToWin.max();
+		let winningScore = Math.max(...scoresToWin);
 		let winningPlayer = undefined;
 		players.forEach(function(player){
 			if(player.userData.score == winningScore){
@@ -654,26 +653,27 @@ function nextTurn(){
 	});
 	//console.log(__line,currentTurn,players)
 	currentTurn = (currentTurn + 1) % players.length;
-	console.log(currentTurn)
+	console.log(currentTurn);
+	
 	if(currentTurn == originalCurrentTurn){
 		restoreCards();
 	}
-	//console.log(__line,currentTurn);
-	if(players[currentTurn].userData.tiles.length == 0){
-		players[currentTurn].userData.skiped = true;
-		let playersSkiped = 0;
-		players.forEach(function(player){
-			if(players[currentTurn].userData.skiped){
-				playersSkiped++;
-			}
-		});
-		if(playersSkiped == players.length){
-			nextRound();
-		}else{
-			nextTurn();
+	let playersSkipped = 0;
+	players.forEach(function(player){
+		if(player.userData.tiles.length == 0){
+			playersSkipped++
 		}
+	});
+	if(playersSkipped == players.length){
+		nextRound();
+		break;
 	}
-	console.log("It is " + players[currentTurn].userData.userName + "'s turn!")
+	if(players[currentTurn].userData.tiles.length == 0){
+		nextTurn();
+	}
+	//console.log(__line,currentTurn);
+	
+	//console.log("It is " + players[currentTurn].userData.userName + "'s turn!")
 	message(players[currentTurn], "It is your turn!", gameColor);
 	updateTurnColor();
 	updateUsers();

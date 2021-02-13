@@ -124,7 +124,7 @@ body {
 
 #chatlog{
 	overflow-y: hidden;
-	height: 100%;
+	height: 96%;
 }
 
 #chatlog:hover{

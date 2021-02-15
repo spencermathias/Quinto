@@ -226,7 +226,7 @@ io.sockets.on("connection", function(socket) {
 					}else{
 						//console.log(deck.getProperties(cardsToPush[0]).comonity);
 						if(deck.getProperties(cardsSelect[0]).comonity == deck.getProperties(cardsSelect[1]).comonity || deck.getProperties(cardsSelect[0]).comonity == 'Gold' || deck.getProperties(cardsSelect[0]).comonity == 'Silver' || deck.getProperties(cardsSelect[1]).comonity == 'Gold' || deck.getProperties(cardsSelect[1]).comonity == 'Silver'){
-							console.log(__line,'we are in here')
+							//console.log(__line,'we are in here')
 							socket.userData.cardsPlayedDown.push(cardsSelect);
 							cardsSelect.forEach(function(card){
 								socket.userData.tiles.splice(socket.userData.tiles.indexOf(card),1);
@@ -509,42 +509,44 @@ function gameStart() {
 }
 
 function nextRound(){
-	updateScore();
-	deck = new deckClass(shared.makeDeck().Deck);
-	for(let x = 0;x < deck.pile.length;x++){
-		let comonity = deck.getProperties(deck.pile[x]).comonity;
-		let repeat = deck.getProperties(deck.pile[x]).repeat;
-		if(comonity == 'Gold' && repeat > 4){
-			deck.pile.splice(x,1);
-		}else{
-			if(comonity == 'Silver' && repeat > 8){
+	if(!updateScore()){
+		deck = new deckClass(shared.makeDeck().Deck);
+		for(let x = 0;x < deck.pile.length;x++){
+			let comonity = deck.getProperties(deck.pile[x]).comonity;
+			let repeat = deck.getProperties(deck.pile[x]).repeat;
+			if(comonity == 'Gold' && repeat > 4){
 				deck.pile.splice(x,1);
 			}else{
-				if(comonity == 'Home' && repeat > 8){
+				if(comonity == 'Silver' && repeat > 8){
 					deck.pile.splice(x,1);
+				}else{
+					if(comonity == 'Home' && repeat > 8){
+						deck.pile.splice(x,1);
+					}
 				}
 			}
 		}
+		cardsInFaceUpPile = [];
+		dealTiles(cardsInFaceUpPile,1);
+		//console.log(__line,players);
+		currentTurn = Math.floor(Math.random() * players.length);
+		//console.log(__line,currentTurn,players);
+		players.forEach(function(player){
+			player.userData.tiles = [];
+			player.userData.cardsPlayedDown = [];
+			player.userData.oponint = false;
+			player.userData.defendent = false;
+			player.userData.skiped = false;
+			dealTiles(player.userData.tiles,5);
+			player.emit('cards',player.userData.tiles);
+			player.emit('discarded',cardsInFaceUpPile[cardsInFaceUpPile.length - 1]);
+		});
+		nextTurn();
+		originalCurrentTurn = currentTurn;
+		updateBoard(io.sockets, readyTitleColor, true);
+		updateTurnColor();
 	}
-	cardsInFaceUpPile = [];
-	dealTiles(cardsInFaceUpPile,1);
-	//console.log(__line,players);
-	currentTurn = Math.floor(Math.random() * players.length);
-	//console.log(__line,currentTurn,players);
-	players.forEach(function(player){
-		player.userData.tiles = [];
-		player.userData.cardsPlayedDown = [];
-		player.userData.oponint = false;
-		player.userData.defendent = false;
-		player.userData.skiped = false;
-		dealTiles(player.userData.tiles,5);
-		player.emit('cards',player.userData.tiles);
-		player.emit('discarded',cardsInFaceUpPile[cardsInFaceUpPile.length - 1]);
-	});
-	nextTurn();
-	originalCurrentTurn = currentTurn;
-	updateBoard(io.sockets, readyTitleColor, true);
-	updateTurnColor();
+	
 }
 
 function updateScore(){
@@ -558,7 +560,7 @@ function updateScore(){
 		});
 		player.userData.score += totalScore;
 	});
-	checkEnd();
+	return checkEnd();
 }
 
 function dealTiles(array,amount){
@@ -586,6 +588,7 @@ function checkEnd(){
 			}
 		});
 		actuilyGameEnd(winningPlayer);
+		return true;
 	}
 }
 
@@ -614,15 +617,15 @@ function actuilyGameEnd(winner) {
 	message(io.sockets, "THE GAME HAS ENDED", gameColor);
 	let scores = '';
 	players.forEach(function(player){
-		message(io.sockets,player.userData.userName + ': ' + player.userData.score,gameColor);
+		message(io.sockets,player.userData.userName + ': ' + player.userData.score + 'K',gameColor);
 	});
-	message(io.sockets,'The winner is ' + winner.userData.userName +'!',gameColor)
+	message(io.sockets,'The winner is ' + winner.userData.userName +'!',gameColor);
 	io.emit('gameEnd');
 	
     players = [];
 	spectators = [];
     allClients.forEach(function(client) {
-		
+		client.userData.score = 0;
         client.userData.ready = false;
         client.userData.statusColor = notReadyColor;
     });
@@ -666,17 +669,19 @@ function nextTurn(){
 	});
 	if(playersSkipped == players.length){
 		nextRound();
-		break;
-	}
-	if(players[currentTurn].userData.tiles.length == 0){
-		nextTurn();
+	}else{
+		if(players[currentTurn].userData.tiles.length == 0){
+			nextTurn();
+		}else{
+			message(players[currentTurn], "It is your turn!", gameColor);
+			updateTurnColor();
+			updateUsers();
+		}
 	}
 	//console.log(__line,currentTurn);
 	
 	//console.log("It is " + players[currentTurn].userData.userName + "'s turn!")
-	message(players[currentTurn], "It is your turn!", gameColor);
-	updateTurnColor();
-	updateUsers();
+	
 }
 
 function updateTurnColor(){

@@ -121,19 +121,19 @@ io.sockets.on("connection", function(socket) {
         /*This event is triggered at the server side when client sends the data using socket.send() method */
         data = JSON.parse(data);
 
-        console.log(__line, "data: ", data);
+        //console.log(__line, "data: ", data);
         /*Printing the data */
 		message( socket, "You: " + data.message, chatColor);
 		message( socket.broadcast, "" + socket.userData.userName + ": " + data.message, chatColor);
 		
         if(data.message === "end") {
-            console.log(__line,"forced end");
+            //console.log(__line,"forced end");
             gameEnd(undefined);
         } else if(data.message === "start") {
-            console.log(__line,"forced start");
+            //console.log(__line,"forced start");
             gameStart();
         } else if(data.message.toLowerCase() === "kick"){
-			console.log(__line, "clearing players");
+			//console.log(__line, "clearing players");
 			for(var i = players.length-1; i >= 0; i--){
 				if(players[i].disconnected){
 					message( io.sockets, "" + players[i].userData.userName + " has been kicked!", chatColor);
@@ -160,7 +160,7 @@ io.sockets.on("connection", function(socket) {
     socket.on("ready", function(ready) {
         if (gameStatus === gameMode.LOBBY){
             socket.userData.ready = ready;
-			console.log(socket.userData.ready);
+			//console.log(socket.userData.ready);
 			if (socket.userData.ready === true) {
 				socket.userData.statusColor = readyColor;
 				updateBoard(socket, readyTitleColor , false);
@@ -168,7 +168,7 @@ io.sockets.on("connection", function(socket) {
 				socket.userData.statusColor = notReadyColor;
 				updateBoard(socket, notReadyTitleColor , false);
 			}
-			console.log(__line,"" + socket.userData.userName + " is ready: " + ready);
+			//console.log(__line,"" + socket.userData.userName + " is ready: " + ready);
             updateUsers();
             checkStart();
         }
@@ -505,7 +505,6 @@ function gameStart() {
 	updateBoard(io.sockets, readyTitleColor, true);
 	updateTurnColor();
 	io.emit('startGame');
-	io.emit('addComitysToSideBar');
 }
 
 function nextRound(){
@@ -656,7 +655,7 @@ function nextTurn(){
 	});
 	//console.log(__line,currentTurn,players)
 	currentTurn = (currentTurn + 1) % players.length;
-	console.log(currentTurn);
+	//console.log(currentTurn);
 	
 	if(currentTurn == originalCurrentTurn){
 		restoreCards();

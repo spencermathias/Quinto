@@ -37,8 +37,7 @@ window.addEventListener('load', function() {
 	}
 
   document.addEventListener('touchstart', touchstartHandler, {passive: false });
-  document.addEventListener('touchmove', touchmoveHandler, {passive: false });
-  console.log('added');
+  document.addEventListener('touchmove', touchmoveHandler, {passive: false });//console.log('added');
   document.getElementById('gameBoard').addEventListener('click', checkClick);
   document.getElementById('title').addEventListener('click', titleFunction);
   document.getElementById('middle').addEventListener('click', allowAudio);
@@ -234,10 +233,9 @@ var playersOponentButton = [];
 var playersDefendentButton = [];
 var biddingSlot = new stealingSlots('');
 var myDefendentButton = new defendentAndOponentButton(canvas.width / 2,(canvas.height / 3) * 2,'Defendent');
-var myPile = undefined;
 var myOponentButton = new defendentAndOponentButton(canvas.width / 2,(canvas.height / 3) * 2,'Oponint');
-var myUserName = undefined;
 var myUserlistIndex = 0;
+var myUserName = undefined;
 var myUserlistString = "";
 var socket = io(publicAddress);
 var tilesDiscarded = undefined;
@@ -245,6 +243,7 @@ var spectatorColor = "#444444";
 var yourTurnColor = "#0000ff";
 var placeholderColor = '#444444';
 var SubmitButton = new submitButton();
+var gameStarted = false;
 
 socket.on('showBoard',function(data){
 	//console.log(data.titleColor);
@@ -302,21 +301,21 @@ socket.on('userList',function(data){
 		//console.log( "player", data[i].userName, "myTurn", myTurn, "id", data[i].id, socket.id, "color", data[i].color, yourTurnColor);
 	}
 	document.getElementById('userlist').innerHTML = userListString;
-	makePlayersPiles(socket);
 	//console.table(data);
 });
 
-socket.on('addComitysToSideBar',function(){
+socket.on('startGame',function(){
 	let sharedComonityValues = Object.keys(shared.makeDeck().comonityValues);
 	let sharedComonityValuesLength = sharedComonityValues.length;
 	//console.log(sharedComonityValues);
 	for(let x = 0;x < sharedComonityValuesLength;x++){
 		let thisValue = sharedComonityValues[x];
 		//console.log(thisValue);
-		console.log(shared.makeDeck().comonityValues[thisValue]);
+		//console.log(shared.makeDeck().comonityValues[thisValue]);
 		let sideBarValue = '<div style="color:#55ff00">' + thisValue + ' - ' + shared.makeDeck().comonityValues[thisValue] + 'K</div>';
 		$('#comonities').append(sideBarValue);
 	}
+	gameStarted = true;
 });
 
 socket.on('cards',function(yourCards){
@@ -343,7 +342,7 @@ socket.on('cards',function(yourCards){
 
 socket.on('discarded',function(cardYouSee){
 	tilesDiscarded = undefined;
-	console.log('the card discarded', cardYouSee);
+	//console.log('the card discarded', cardYouSee);
 	let card = deck.getProperties(cardYouSee);
 	if(cardYouSee != null){
 		tilesDiscarded = new Card(canvas.width / 2,canvas.height / 2,card.comonity);
@@ -371,6 +370,8 @@ socket.on("message",function(message){
 
 socket.on('gameEnd',function(){
 	$('#comonities').empty();
+	$('#peoplesTopPiles').empty();
+	gameStarted = false;
 });
 
 function makePlayersPiles(socket){
@@ -379,7 +380,6 @@ function makePlayersPiles(socket){
 	allPlayersNames = [];
 	playersOponentButton = [];
 	playersDefendentButton = [];
-	myPile = undefined;
 	myDefendentButton = new defendentAndOponentButton(canvas.width / 2,(canvas.height / 3) * 2,'Defendent');
 	myOponentButton = new defendentAndOponentButton(canvas.width / 2,(canvas.height / 3) * 2,'Oponint');
 	let alreadyFoundMe = false;
@@ -397,12 +397,6 @@ function makePlayersPiles(socket){
 			}
 			
 			if(thisPileComonity != undefined){
-				var card = new Card(
-					canvas.width/2,
-					canvas.width / 4,
-					thisPileComonity
-				);
-				myPile = card;
 				let gold = 0;
 				let silver = 0;
 				let comonity = 0;
@@ -417,7 +411,7 @@ function makePlayersPiles(socket){
 						comonity++;
 					}
 				});
-				console.log(thisPileComonity)
+				//console.log(thisPileComonity)
 				$('#peoplesTopPiles').append('<div id = ' + userList[i].id + ' style = "color:#ba1a6d">' + userList[i].userName + '</div>')
 				$('#' + userList[i].id).append('<div style = "color:#0000ff">Gold - ' + gold + '</div>')
 				$('#' + userList[i].id).append('<div style = "color:#0000ff">Silver - ' + silver + '</div>')
@@ -440,10 +434,33 @@ function makePlayersPiles(socket){
 						biddingPileSlotComonity = deck.getProperties(card).comonity;
 					}
 				});
-				console.log(userList[i]);
+				//console.log(userList[i]);
 				biddingSlot = new stealingSlots(biddingPileSlotComonity + ' ' + userList[i].biddingPile.length);
 			}
 		}else{
+			let newI = undefined;
+			if(alreadyFoundMe){
+				newI = i - 1;
+			}else{
+				newI = i;
+			}
+			let amountInRow = undefined;
+			let numberOfRows = Math.ceil(userList.length / 8);
+			let row = Math.floor(newI / 8);
+			let rowIndex = newI % 8;
+			if(row == numberOfRows - 1){
+				if((userList.length - 1) % 8 == 0){
+					amountInRow = 8;
+				}else{
+					amountInRow = (userList.length - 1) % 8;
+				}
+			}else{
+				amountInRow = 8;
+			}
+			let cardY = ((canvas.height / 5) * row) + ((canvas.height * 23) / 180);
+			let cardX = (canvas.width / (amountInRow + 1)) * (rowIndex + 1);
+			//console.log(cardX,i);
+			
 			let thisPileComonity = undefined;
 			//console.log(userList[i]);
 			if(userList[i].thisLength != 0){
@@ -455,23 +472,13 @@ function makePlayersPiles(socket){
 			}
 			
 			if(thisPileComonity != undefined){
-				if(alreadyFoundMe){
-					var card = new Card(
-						(canvas.width / (userList.length)) * (i),
-						(canvas.width / 5),
-						thisPileComonity,
-						userList[i].id
-					);
-					playersPiles.push(card);
-				}else{
-					var card = new Card(
-						(canvas.width / (userList.length)) * (i + 1),
-						(canvas.width / 5),
-						thisPileComonity,
-						userList[i].id
-					);
-					playersPiles.push(card);
-				}
+				var card = new Card(
+					cardX,
+					cardY,
+					thisPileComonity,
+					userList[i].id
+				);
+				playersPiles.push(card);
 				let gold = 0;
 				let silver = 0;
 				let comonity = 0;
@@ -486,66 +493,39 @@ function makePlayersPiles(socket){
 						comonity++;
 					}
 				});
-				$('#peoplesTopPiles').append('<div id = ' + userList[i].id + ' style = "color:#ba1a6d">' + userList[i].userName + '</div>')
-				$('#' + userList[i].id).append('<div style = "color:#ffef00">Gold - ' + gold + '</div>')
-				$('#' + userList[i].id).append('<div style = "color:#7e5f85">Silver - ' + silver + '</div>')
-				$('#' + userList[i].id).append('<div style = "color:#00ff00">' + thisPileComonity + ' - ' + comonity + '</div>')
+				if(userlist.thisLength > 1){
+					$('#peoplesTopPiles').append('<div id = ' + userList[i].id + ' style = "color:#ba1a6d">' + userList[i].userName + '</div>')
+					$('#' + userList[i].id).append('<div style = "color:#ffef00">Gold - ' + gold + '</div>')
+					$('#' + userList[i].id).append('<div style = "color:#7e5f85">Silver - ' + silver + '</div>')
+					$('#' + userList[i].id).append('<div style = "color:#00ff00">' + thisPileComonity + ' - ' + comonity + '</div>')
+				}
 			}
-			if(alreadyFoundMe){
-				var playersNames = new PlayersNames(
-					(canvas.width / (userList.length)) * (i),
-					(canvas.width / 10),
-					userList[i].userName + ' ' + userList[i].thisLength,
-					userList[i].id
-				);
-				allPlayersNames.push(playersNames);
-			}else{
-				var playersNames = new PlayersNames(
-					(canvas.width / (userList.length)) * (i + 1),
-					(canvas.width / 10),
-					userList[i].userName + ' ' + userList[i].thisLength,
-					userList[i].id
-				);
-			}
-			
+			var playersNames = new PlayersNames(
+				cardX,
+				cardY - (canvas.height / 12),
+				userList[i].userName + ' ' + userList[i].thisLength,
+				userList[i].id
+			);
 			allPlayersNames.push(playersNames);
 			
 			if(userList[i].oponint){
-				if(alreadyFoundMe){
-					var oponint = new defendentAndOponentButton(
-						(canvas.width / (userList.length)) * (i),
-						canvas.height / 40,
-						'Oponint'
-					);
-					oponint.visible = true;
-				}else{
-					var oponint = new defendentAndOponentButton(
-						(canvas.width / userList.length) * (i + 1),
-						canvas.height / 40,
-						'Oponint'
-					);
-					oponint.visible = true;
-				}
+				var oponint = new defendentAndOponentButton(
+					cardX,
+					cardY - (canvas.height / 9),
+					'Oponint'
+				);
 				playersOponentButton.push(oponint);
+				oponint.visible = true;
 			}
 			if(userList[i].defendent){
-				if(alreadyFoundMe){
-					var defendent = new defendentAndOponentButton(
-						(canvas.width / (userList.length)) * (i),
-						canvas.height / 13,
-						'Defendent'
-					);
-					defendent.visible = true;
-				}else{
-					var defendent = new defendentAndOponentButton(
-						(canvas.width / userList.length) * (i + 1),
-						canvas.height / 13,
-						'Defendent'
-					);
-					defendent.visible = true;
-				}
+				var defendent = new defendentAndOponentButton(
+					cardX,
+					cardY - (canvas.height / 9),
+					'Defendent'
+				);
 				playersDefendentButton.push(defendent);
-				console.log(userList[i].biddingPile);
+				defendent.visible = true;
+				//console.log(userList[i].biddingPile);
 			}
 			if(userList[i].biddingPile.length == 0){
 				biddingSlot = new stealingSlots('')
@@ -556,7 +536,7 @@ function makePlayersPiles(socket){
 						cardComonity = deck.getProperties(card).comonity;
 					}
 				});
-				console.log(userList[i])
+				//console.log(userList[i])
 				biddingSlot = new stealingSlots(cardComonity + ' ' + userList[i].biddingPile.length);
 			}
 		}
@@ -594,7 +574,6 @@ function resizeDrawings(){
 	if(tilesDiscarded != undefined){
 		tilesDiscarded.updateSize(canvas.width / 2,canvas.height / 2,canvas.width / 16,canvas.height / 8);
 	}
-	
 	makePlayersPiles(socket);
 	SubmitButton.updateSize(canvas.width / 2,(canvas.height / 4) * 3,canvas.width,canvas.height / 16);
 	biddingSlot.updateSize(canvas.width / 4,canvas.height / 2,canvas.width / 16,canvas.height / 8);

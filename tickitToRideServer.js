@@ -83,7 +83,7 @@ io.sockets.on("connection", function(socket) {
 
     console.log(__line, "Socket.io Connection with client " + socket.id +" established");
 	
-	 socket.on("disconnect",function() {
+	socket.on("disconnect",function() {
 		message( io.sockets, "" + socket.userData.userName + " has left.", serverColor);
 		message( io.sockets, "Type 'kick' to kick disconnected players", serverColor);
         console.log(__line,"disconnected: " + socket.userData.userName + ": " + socket.id);

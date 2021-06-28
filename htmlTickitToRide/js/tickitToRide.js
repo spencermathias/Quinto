@@ -231,11 +231,13 @@ socket.on('connect', function(){
 	console.log("Connection successful!");
 	if(localStorage.userName === undefined){
 		changeName(socket.id);
+		console.log('changing name');
 	} else {
 		socket.emit('userName', localStorage.userName);
 	}
 	
 	if(localStorage.id !== undefined){
+		console.log('localStorage is undefined');
 		socket.emit('oldId', localStorage.id);
 	}
 	localStorage.id = socket.id;

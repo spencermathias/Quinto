@@ -18,21 +18,26 @@ class train{
 	}
 }
 
+var camera = new THREE.PerspectiveCamera(75,1,0.1,1000);
 var socket = io(publicAddress);
 var threeDShapes = [];
 var scene = new THREE.Scene();
-var camera = new THREE.PerspectiveCamera(75,canvas.width / canvas.height,0.1,1000);
 var renderer = new THREE.WebGLRenderer();
 var threeDCanvas = renderer.domElement;
-var light = new THREE.
+var light = new THREE.AmbientLight();
+$('#3DCanvas').append(renderer.domElement);
+
 socket.on('startGame',function(){
-	$('#3DCanvas').append(threeDCanvas);
-	updateRenderSize();
+	resizeCanvas();
 });
 
-function updateRenderSize(){
-	renderer.setSize($('#3DCanvas').width(),$('#3DCanvas').height());
-	setTimeout(updateRenderSize,1000);
+socket.on('showBoard',function(){
+	resizeCanvas();
+});
+
+function resizeCanvas(){
+	camera = new THREE.PerspectiveCamera(75,$('3DCanvas').width() / $('3DCanvas').height(),0.1,1000);
+	renderer.setSize($('3DCanvas').width(),$('3DCanvas').height());
 }
 
 function addShapes(){
@@ -42,17 +47,9 @@ function addShapes(){
 	setTimeout(addShapes,100);
 }
 
-
-function animate() {
+function animate(){
 	requestAnimationFrame(animate);
 	renderer.render(scene,camera);
 }
+
 animate();
-
-var ballGeometry = new THREE.SphereGeometry(10,64,64);
-var meterial = new THREE.MeshBasicMaterial({color:'#343434'});
-var sphere = new THREE.Mesh(ballGeometry,meterial);
-sphere.position(0,0,20);
-threeDShapes.push(sphere);
-
-addShapes();

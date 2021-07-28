@@ -355,6 +355,7 @@ function resizeCanvas(){
 	canvas.height = window.innerHeight - 2;
 	//console.log('canvas resized to: ', canvas.width, canvas.height);
 	resizeDrawings();
+	resizeCanvas3D();
 }
 
 function resizeDrawings(){

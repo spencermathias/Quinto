@@ -228,7 +228,7 @@ io.sockets.on("connection", function(socket) {
 				console.log(__line,"before matrix");
 				printMatrix();
 				
-				//the player number of the socket (person attempting the trade
+				//the player number of the socket (person attempting the trade)
 				fromPlayerNumber = players.indexOf(socket);
 				if (fromPlayerNumber >= 0){
 					playerTradeMatrix[toPlayerNumber][fromPlayerNumber].push(tileNumbers);
@@ -239,7 +239,7 @@ io.sockets.on("connection", function(socket) {
 				
 				//console.log(__line,'toPlayerNumber',toPlayerNumber,players[toPlayerNumber].userData.userName);
 				players[toPlayerNumber].emit('tradeMatrix',playerTradeMatrix[toPlayerNumber]);
-				//console.log(__line,playerTradeMatrix);
+				console.log(__line,playerTradeMatrix);
 			}
 		} else {
 			console.log(__line,"invalid player number for trade!!!!!!!");
@@ -324,6 +324,7 @@ io.sockets.on("connection", function(socket) {
 									var bid = tradeArray[j];
 									for(var k = 0; k<bid.length; k++){
 										if((cardID1 == bid[k])||(cardID2==bid[k])){ // if a bid has a card that is about to be traded, delete the bid
+											console.log(__line,cardID1,cardID2,tradeArray,bid,playerTradeMatrix)
 											tradeArray.splice(j,1);
 											break;
 										}	
@@ -446,7 +447,7 @@ function newRound(socket,add){
 	console.log(__line,'p',players.length);
 	
 	//deal new cards
-	var discription = shared.cardDes
+	var discription = shared.cardDes;
 	console.log(discription);
 	discription.products = shared.cardDes.products.slice(0,players.length);
 	tiles = new Deck(discription); //deck to deal to players
@@ -455,7 +456,7 @@ function newRound(socket,add){
 	
 	//print all tiles
 	for (var i = 0; i < pile.length; i++){
-		console.log(__line,'cards',pile[i],tiles.getProperties(pile[i]));
+		//console.log(__line,'cards',pile[i],tiles.getProperties(pile[i]));
 	}
 	
 	//console.log(__line, "cards", pile) ;
@@ -521,7 +522,7 @@ function message(socket, message, color){
 }
 
 function updateUsers(target = io.sockets){
-	console.log(__line,"--------------Sending New User List--------------");
+	//console.log(__line,"--------------Sending New User List--------------");
     var userList = [];
 	if(gameStatus == gameMode.LOBBY){
 		allClients.forEach(function(client){
@@ -535,13 +536,13 @@ function updateUsers(target = io.sockets){
 			userList.push(getUserSendData(client));
 		});
 	}
-    console.log(__line,"----------------Done Sending List----------------");
+    //console.log(__line,"----------------Done Sending List----------------");
 	
 	io.sockets.emit('userList', userList);
 }
 
 function getUserSendData(client){
-	console.log(__line,"userName:", client.userData.userName, " |ready:", client.userData.ready, "|status:", client.userData.statusColor, "|score:", client.userData.score);
+	//console.log(__line,"userName:", client.userData.userName, " |ready:", client.userData.ready, "|status:", client.userData.statusColor, "|score:", client.userData.score);
 	let bids = [0,0,0,0];
 	client.userData.bids.forEach((b)=>{
 		bids[b.length-1]++;
@@ -549,7 +550,9 @@ function getUserSendData(client){
 	let trades = [0,0,0,0];
 	client.userData.trades.forEach((b)=>{
 		trades[b.length-1]++;
+		console.log(__line,client.userData.trades)
 	});
+	console.log(trades);
 	return{
 		id: client.id,
 		userName: client.userData.userName,
@@ -607,13 +610,15 @@ function gameStart() {
 	//wait for turn plays
 	io.emit('startGame');
 	newRound(undefined,undefined);
+	let totalScore = 0;
+	console.log(totalScore);
 	for(var x = 0;x < bidsForWinningScore.length;x++){
-		winningScore+=bidsForWinningScore[x].bid;
-		console.log(__line,winningScore);
+		totalScore += bidsForWinningScore[x].bid;
+		console.log(__line,totalScore);
 	}
-	winningScore = winningScore/bidsForWinningScore.length;
+	winningScore = totalScore / bidsForWinningScore.length;
 	console.log(Math.ceil(winningScore));
-	message(io.sockets,'The winning score for this game is ' + winningScore, gameColor);
+	message(io.sockets,'The winning score for this game is ' + Math.ceil(winningScore), gameColor);
 }
 
 function sendBoardState(){

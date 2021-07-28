@@ -243,7 +243,8 @@ class tradeButton extends Tile{
 			for (let i = 0;i < playerTradeMatrix[this.userNumber].length;i++){
 				let trade = playerTradeMatrix[this.userNumber][i];
 				console.log(trade,this.placeNumber + 1);
-				this.visible =(trade.length == this.placeNumber + 1);
+				if(trade.length == this.placeNumber + 1){this.visible = true;}
+				console.log(this.visible);
 			}
 		}
 	}
@@ -584,7 +585,7 @@ socket.on('connect', function(){
 });
 
 socket.on('tradeMatrix',(tradeMatrix)=>{
-	console.log(playerTradeMatrix,'hi');
+	console.log(tradeMatrix,'hi');
 	playerTradeMatrix = tradeMatrix;
 	tradingUi.forEach((i)=>{
 		i.updateVisibility();
@@ -624,8 +625,13 @@ socket.on('startGame',()=>{
 });
 
 function changeBid(){
-	var myBid = prompt('Enter what score you want to play to. Please make it no greater than 500.');
-	socket.emit('newBidForScoreToWinTheGame',myBid);
+	if(localStorage.bid == undefined){
+		var myBid = prompt('Enter what score you want to play to. Please make it no greater than 500.');
+		socket.emit('newBidForScoreToWinTheGame',myBid);
+		localStorage.bid = myBid;
+	}else{
+		socket.emit('newBidForScoreToWinTheGame',localStorage.bid);
+	}
 }
 
 function changeName(userId){
@@ -647,7 +653,7 @@ function pushProprites(){
 	for(let x = 0; x < userList.length; x++){
 		let y = shared.cardDes.products[x].name;
 		let z = shared.cardDes.products[x].value;
-		$('#proprites').append('<li>' + y + ' ' + z + '</li>');
+		$('#proprites').append('<li style="color:#ff0088">' + y + ' ' + z + '</li>');
 	}
 }
 /*Initializing the connection with the server via websockets */

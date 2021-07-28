@@ -47,7 +47,6 @@ window.addEventListener('load', function() {
   document.getElementById('gameBoard').addEventListener('click', checkClick);
   document.getElementById('title').addEventListener('click', titleFunction);
   document.getElementById('middle').addEventListener('click', allowAudio);
-  document.getElementById('buttonToChangeBid').addEventListener('click', changeBid)
 });
 
 $('#submit').click(function(){
@@ -244,7 +243,7 @@ class tradeButton extends Tile{
 				let trade = playerTradeMatrix[this.userNumber][i];
 				console.log(trade,this.placeNumber + 1);
 				if(trade.length == this.placeNumber + 1){this.visible = true;}
-				console.log(this.visible);
+				//console.log(this.visible);
 			}
 		}
 	}
@@ -581,7 +580,7 @@ socket.on('connect', function(){
 		socket.emit('oldId', localStorage.id);
 	}
 	localStorage.id = socket.id;
-	changeBid();
+	changeBid(true);
 });
 
 socket.on('tradeMatrix',(tradeMatrix)=>{
@@ -624,8 +623,8 @@ socket.on('startGame',()=>{
 	pushProprites();
 });
 
-function changeBid(){
-	if(localStorage.bid == undefined){
+function changeBid(isReloaded){
+	if(localStorage.bid == undefined || !isReloaded){
 		var myBid = prompt('Enter what score you want to play to. Please make it no greater than 500.');
 		socket.emit('newBidForScoreToWinTheGame',myBid);
 		localStorage.bid = myBid;
@@ -781,7 +780,6 @@ socket.on('gameEnd',()=>{
 	});
 	myTiles = [];
 	$('#proprites').empty();
-	changeBid();
 });
 
 function updatePlayValidity(){

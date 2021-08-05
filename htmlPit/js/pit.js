@@ -628,9 +628,8 @@ function changeBid(isReloaded){
 		var myBid = prompt('Enter what score you want to play to. Please make it no greater than 500.');
 		socket.emit('newBidForScoreToWinTheGame',myBid);
 		localStorage.bid = myBid;
-	}else{
-		socket.emit('newBidForScoreToWinTheGame',localStorage.bid);
 	}
+	socket.emit('newBidForScoreToWinTheGame',localStorage.bid);
 }
 
 function changeName(userId){

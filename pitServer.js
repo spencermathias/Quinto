@@ -215,6 +215,16 @@ io.sockets.on("connection", function(socket) {
 	socket.on('submitedBidTiles',function(tileNumbers){
 		//makes sure people actily have those cards
 		if (checkCardOwner(socket,tileNumbers)!= undefined){
+			let bidValid = true;
+			socket.userData.bids.forEach(function(bid){
+				if(bid.length == tileNumbers.length){
+					socket.userData.bids.splice(socket.userData.bids.indexOf(bid),1);
+					bidValid = false;
+				}
+			});
+			if(!bidValid){
+				message(socket,'You have already submited a bid with ' + tileNumbers.length + ' tiles so your bid was replaced',gameErrorColor);
+			}
 			socket.userData.bids.push(tileNumbers);
 			updateUsers();
 		}
@@ -227,9 +237,15 @@ io.sockets.on("connection", function(socket) {
 				
 				console.log(__line,"before matrix");
 				printMatrix();
+				fromPlayerNumber = players.indexOf(socket);
+				
+				playerTradeMatrix[toPlayerNumber][fromPlayerNumber].forEach(function(bid){
+					if(bid.length == tileNumbers.length){
+						playerTradeMatrix[toPlayerNumber][fromPlayerNumber].splice(playerTradeMatrix[toPlayerNumber][fromPlayerNumber].indexOf(bid));
+					}
+				});
 				
 				//the player number of the socket (person attempting the trade)
-				fromPlayerNumber = players.indexOf(socket);
 				if (fromPlayerNumber >= 0){
 					playerTradeMatrix[toPlayerNumber][fromPlayerNumber].push(tileNumbers);
 				}
@@ -287,10 +303,43 @@ io.sockets.on("connection", function(socket) {
 					//console.log(__line,'trade',trade);
 					//console.log(__line,'tradeResponse',tradeResponse);
 					
+					let fromPlayerBid;
 					
 					//for all cards being traded,
 					for(var i = 0; i< tradeResponse.length; i++){
 						var cardID1 = tradeResponse[i];
+						
+						//destroy all invalid trades in the trade matrix  (could be optimized)
+						for(var l=0; l<players.length; l++){
+							for(var m=0; m<players.length; m++){
+								var tradeArray = playerTradeMatrix[l][m];
+								console.log(__line,cardID1,cardID2,tradeArray,playerTradeMatrix,tradeResponse);
+								
+								var bidMatchingTrade = undefined;
+								for(var x = 0;x < players[l].userData.bids.length;x++){
+									if(tradeResponse.length == players[l].userData.bids[x].length){
+										bidMatchingTrade = players[l].userData.bids[x];
+									}
+								}
+								console.log(bidMatchingTrade);
+								
+								for(var j = tradeArray.length-1; j >= 0 ; j--){
+									var bid = tradeArray[j];
+									for(var k = 0; k<bid.length; k++){
+										let bidMatchingTradeCard;
+										if(bidMatchingTrade == undefined){
+											bidMatchingTradeCard = undefined;
+										}else{
+											bidMatchingTradeCard == bidMatchingTrade[k];
+										}
+										if((cardID1 == bid[k])||(cardID2==bid[k])||(cardID1 == bidMatchingTradeCard)||(cardID2 == bidMatchingTradeCard)){ // if a bid has a card that is about to be traded, delete the bid
+											tradeArray.splice(j,1);
+											break;
+										}	
+									}
+								}
+							}
+						}
 						
 						//destroy invalid bids for player 1 (from player)
 						for(var j = fromPlayer.userData.bids.length-1; j >= 0 ; j--){
@@ -314,25 +363,8 @@ io.sockets.on("connection", function(socket) {
 								}	
 							}
 						}
-						
-						//destroy all invalid trades in the trade matrix  (could be optimized)
-						
-						for(var l=0; l<players.length; l++){
-							for(var m=0; m<players.length; m++){
-								var tradeArray = playerTradeMatrix[l][m];
-								for(var j = tradeArray.length-1; j >= 0 ; j--){
-									var bid = tradeArray[j];
-									for(var k = 0; k<bid.length; k++){
-										if((cardID1 == bid[k])||(cardID2==bid[k])){ // if a bid has a card that is about to be traded, delete the bid
-											console.log(__line,cardID1,cardID2,tradeArray,bid,playerTradeMatrix)
-											tradeArray.splice(j,1);
-											break;
-										}	
-									}
-								}
-							}
-						}
 					}
+					console.log(__line,tradeResponse)
 					
 					
 					console.log(__line, "After deleting from trade Matrix");

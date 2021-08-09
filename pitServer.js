@@ -55,6 +55,8 @@ var readyTitleColor = "#00ff00";
 var notReadyTitleColor = "#ff0000";
 var spectatorColor = "#444444";
 var notYourTurnColor = "#ffffff";
+var bidsForWinningScore = [];
+var winningScore = 0;
 //var yourTurnColor = "#0000ff";
 
 
@@ -100,6 +102,12 @@ io.sockets.on("connection", function(socket) {
         if(i >= 0){ allClients.splice(i, 1); }
 		var i = spectators.indexOf(socket);
         if(i >= 0){ spectators.splice(i, 1); }
+		
+		bidsForWinningScore.forEach(function(bids){
+			if(bids.id == socket.id){
+				bidsForWinningScore.splice(bids,1);
+			}
+		});
 		updateUsers();
         //players are only removed if kicked
     });
@@ -114,16 +122,41 @@ io.sockets.on("connection", function(socket) {
 				socket.userData = players[i].userData;
 				players[i] = socket;
 				
-				socket.emit('tiles', socket.userData.tiles);
-				
+	
 				if(gameStatus === gameMode.PLAY){
 					io.emit('startGame');
 				}
+
+				socket.emit('tiles', socket.userData.tiles);
+				
 				
 			} else {
 				console.log(__line, "new player");
 			}
 		}
+	});
+	
+	socket.on('newBidForScoreToWinTheGame',function(bidToBeAdded){
+		let a = parseInt(bidToBeAdded);
+		if(a <= 500){
+			let bid = {
+				bid: a,
+				id: socket.id
+			}
+			bidsForWinningScore.forEach(function(bid){
+				if(bid.id == socket.id){
+					bidsForWinningScore.splice(bidsForWinningScore.indexOf(bid),1);
+				}
+			});
+			bidsForWinningScore.push(bid);
+		}else{
+			if(a > 500){
+				message(socket,'your bid is greater than 500 so it will not be counted.',gameErrorColor);
+			}else{
+				message(socket,'Your bid consists of caracters that are not numbers. please only insert numbers.',gameErrorColor);
+			}
+		}
+
 	});
 
     socket.on("message",function(data) {
@@ -185,6 +218,16 @@ io.sockets.on("connection", function(socket) {
 	socket.on('submitedBidTiles',function(tileNumbers){
 		//makes sure people actily have those cards
 		if (checkCardOwner(socket,tileNumbers)!= undefined){
+			let bidValid = true;
+			socket.userData.bids.forEach(function(bid){
+				if(bid.length == tileNumbers.length){
+					socket.userData.bids.splice(socket.userData.bids.indexOf(bid),1);
+					bidValid = false;
+				}
+			});
+			if(!bidValid){
+				message(socket,'You have already submited a bid with ' + tileNumbers.length + ' tiles so your bid was replaced',gameErrorColor);
+			}
 			socket.userData.bids.push(tileNumbers);
 			updateUsers();
 		}
@@ -197,9 +240,17 @@ io.sockets.on("connection", function(socket) {
 				
 				console.log(__line,"before matrix");
 				printMatrix();
-				
-				//the player number of the socket (person attempting the trade
+
 				fromPlayerNumber = players.indexOf(socket);
+				
+				playerTradeMatrix[toPlayerNumber][fromPlayerNumber].forEach(function(bid){
+					if(bid.length == tileNumbers.length){
+						playerTradeMatrix[toPlayerNumber][fromPlayerNumber].splice(playerTradeMatrix[toPlayerNumber][fromPlayerNumber].indexOf(bid));
+					}
+				});
+				
+				//the player number of the socket (person attempting the trade)
+
 				if (fromPlayerNumber >= 0){
 					playerTradeMatrix[toPlayerNumber][fromPlayerNumber].push(tileNumbers);
 				}
@@ -209,6 +260,7 @@ io.sockets.on("connection", function(socket) {
 				
 				//console.log(__line,'toPlayerNumber',toPlayerNumber,players[toPlayerNumber].userData.userName);
 				players[toPlayerNumber].emit('tradeMatrix',playerTradeMatrix[toPlayerNumber]);
+
 				//console.log(__line,playerTradeMatrix);
 			}
 		} else {
@@ -256,12 +308,46 @@ io.sockets.on("connection", function(socket) {
 					console.log(__line,out);
 					//console.log(__line,'trade',trade);
 					//console.log(__line,'tradeResponse',tradeResponse);
-					
+
 					
 					//for all cards being traded,
 					for(var i = 0; i< tradeResponse.length; i++){
 						var cardID1 = tradeResponse[i];
 						
+
+						//destroy all invalid trades in the trade matrix  (could be optimized)
+						for(var l=0; l<players.length; l++){
+							for(var m=0; m<players.length; m++){
+								var tradeArray = playerTradeMatrix[l][m];
+								console.log(__line,cardID1,cardID2,tradeArray,playerTradeMatrix,tradeResponse);
+								
+								var bidMatchingTrade = undefined;
+								for(var x = 0;x < players[l].userData.bids.length;x++){
+									if(tradeResponse.length == players[l].userData.bids[x].length){
+										bidMatchingTrade = players[l].userData.bids[x];
+									}
+								}
+								console.log(bidMatchingTrade);
+								
+								for(var j = tradeArray.length-1; j >= 0 ; j--){
+									var bid = tradeArray[j];
+									for(var k = 0; k<bid.length; k++){
+										let bidMatchingTradeCard;
+										if(bidMatchingTrade == undefined){
+											bidMatchingTradeCard = undefined;
+										}else{
+											bidMatchingTradeCard == bidMatchingTrade[k];
+										}
+										if((cardID1 == bid[k])||(cardID2==bid[k])||(cardID1 == bidMatchingTradeCard)||(cardID2 == bidMatchingTradeCard)){ // if a bid has a card that is about to be traded, delete the bid
+											tradeArray.splice(j,1);
+											break;
+										}	
+									}
+								}
+							}
+						}
+						
+
 						//destroy invalid bids for player 1 (from player)
 						for(var j = fromPlayer.userData.bids.length-1; j >= 0 ; j--){
 							var bid = fromPlayer.userData.bids[j];
@@ -284,24 +370,8 @@ io.sockets.on("connection", function(socket) {
 								}	
 							}
 						}
-						
-						//destroy all invalid trades in the trade matrix  (could be optimized)
-						
-						for(var l=0; l<players.length; l++){
-							for(var m=0; m<players.length; m++){
-								var tradeArray = playerTradeMatrix[l][m];
-								for(var j = tradeArray.length-1; j >= 0 ; j--){
-									var bid = tradeArray[j];
-									for(var k = 0; k<bid.length; k++){
-										if((cardID1 == bid[k])||(cardID2==bid[k])){ // if a bid has a card that is about to be traded, delete the bid
-											tradeArray.splice(j,1);
-											break;
-										}	
-									}
-								}
-							}
-						}
 					}
+					console.log(__line,tradeResponse)
 					
 					
 					console.log(__line, "After deleting from trade Matrix");
@@ -393,7 +463,7 @@ function newRound(socket,add){
 		message(io.sockets,socket.userData.userName + ' won that round',gameColor);
 		socket.userData.score += add;
 		updateUsers();
-		if (socket.userData.score >= winScore){
+		if (socket.userData.score >= winningScore){
 			return actilyGameEnd(socket);
 		}
 	}
@@ -416,14 +486,18 @@ function newRound(socket,add){
 	console.log(__line,'p',players.length);
 	
 	//deal new cards
-	shared.cardDes.products = shared.cardDes.products.slice(0,players.length);
-	tiles = new Deck( shared.cardDes); //deck to deal to players
+
+	var discription = shared.cardDes;
+	console.log(discription);
+	discription.products = shared.cardDes.products.slice(0,players.length);
+	tiles = new Deck(discription); //deck to deal to players
+
 	var pile = new Array(tiles.totalCards);
 	for (var i = 0; i < pile.length; i++){ pile[i]=i;}
 	
 	//print all tiles
 	for (var i = 0; i < pile.length; i++){
-		console.log(__line,'cards',pile[i],tiles.getProperties(pile[i]));
+		//console.log(__line,'cards',pile[i],tiles.getProperties(pile[i]));
 	}
 	
 	//console.log(__line, "cards", pile) ;
@@ -489,7 +563,7 @@ function message(socket, message, color){
 }
 
 function updateUsers(target = io.sockets){
-	console.log(__line,"--------------Sending New User List--------------");
+	//console.log(__line,"--------------Sending New User List--------------");
     var userList = [];
 	if(gameStatus == gameMode.LOBBY){
 		allClients.forEach(function(client){
@@ -503,13 +577,13 @@ function updateUsers(target = io.sockets){
 			userList.push(getUserSendData(client));
 		});
 	}
-    console.log(__line,"----------------Done Sending List----------------");
+    //console.log(__line,"----------------Done Sending List----------------");
 	
 	io.sockets.emit('userList', userList);
 }
 
 function getUserSendData(client){
-	console.log(__line,"userName:", client.userData.userName, " |ready:", client.userData.ready, "|status:", client.userData.statusColor, "|score:", client.userData.score);
+	//console.log(__line,"userName:", client.userData.userName, " |ready:", client.userData.ready, "|status:", client.userData.statusColor, "|score:", client.userData.score);
 	let bids = [0,0,0,0];
 	client.userData.bids.forEach((b)=>{
 		bids[b.length-1]++;
@@ -517,7 +591,9 @@ function getUserSendData(client){
 	let trades = [0,0,0,0];
 	client.userData.trades.forEach((b)=>{
 		trades[b.length-1]++;
+		console.log(__line,client.userData.trades)
 	});
+	console.log(trades);
 	return{
 		id: client.id,
 		userName: client.userData.userName,
@@ -572,10 +648,18 @@ function gameStart() {
 			client.userData.statusColor = spectatorColor;
 		}
 	});
-	newRound(undefined,undefined);
-
 	//wait for turn plays
 	io.emit('startGame');
+	newRound(undefined,undefined);
+	let totalScore = 0;
+	console.log(totalScore);
+	for(var x = 0;x < bidsForWinningScore.length;x++){
+		totalScore += bidsForWinningScore[x].bid;
+		console.log(__line,totalScore);
+	}
+	winningScore = totalScore / bidsForWinningScore.length;
+	console.log(Math.ceil(winningScore));
+	message(io.sockets,'The winning score for this game is ' + Math.ceil(winningScore), gameColor);
 }
 
 function sendBoardState(){
@@ -689,6 +773,9 @@ function actilyGameEnd(winner) {
         client.userData.ready = false;
         client.userData.statusColor = notReadyColor;
     });
+	
+	bidsForWinningScore = [];
+	
     gameStatus = gameMode.LOBBY;
     updateUsers();
 }

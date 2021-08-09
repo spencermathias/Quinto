@@ -1,0 +1,3 @@
+ERORS
+TODO
+ -check if check end function works when somone has won the game

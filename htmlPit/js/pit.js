@@ -9,6 +9,7 @@
 // TODO: fix chat chat stretch
 
 //events
+
 var publicAddress = 'http://alanisboard.ddns.net/';
 var internalAddress = 'http://192.168.1.8:8080/';
 
@@ -51,7 +52,7 @@ window.addEventListener('load', function() {
 
 $('#submit').click(function(){
 	var data = {
-		message:$('#message').val()         
+		message:$('#message').val(),
 	}
 	socket.send(JSON.stringify(data)); 
 	$('#message').val('');
@@ -242,7 +243,8 @@ class tradeButton extends Tile{
 			for (let i = 0;i < playerTradeMatrix[this.userNumber].length;i++){
 				let trade = playerTradeMatrix[this.userNumber][i];
 				console.log(trade,this.placeNumber + 1);
-				this.visible =(trade.length == this.placeNumber + 1);
+				if(trade.length == this.placeNumber + 1){this.visible = true;}
+				//console.log(this.visible);
 			}
 		}
 	}
@@ -579,10 +581,11 @@ socket.on('connect', function(){
 		socket.emit('oldId', localStorage.id);
 	}
 	localStorage.id = socket.id;
+	changeBid(true);
 });
 
 socket.on('tradeMatrix',(tradeMatrix)=>{
-	console.log(playerTradeMatrix,'hi');
+	console.log(tradeMatrix,'hi');
 	playerTradeMatrix = tradeMatrix;
 	tradingUi.forEach((i)=>{
 		i.updateVisibility();
@@ -600,10 +603,35 @@ socket.on('startGame',()=>{
 	userList.forEach((userName,i)=> {
 		if (userName.ready){
 			tradingUi.push(new BiddingInterface(i,y,textsize));
-		}	
+		}
 		y += textsize*1.5;
 	});
+	
+	for (var i = 0;i < 10;i++){
+		var tile = new Tile(
+			(canvas.width/2) + (tileWidth + 20) * (i-2),
+			canvas.height - (tileHeight + 20),
+			tileWidth,
+			tileHeight,
+			'',
+			newTileColor,'#000000','#000000','#000000',
+			20,true
+		);
+	//tile.drawOutline(placeholderColor); //placeholder outline
+		myTiles.push(tile);
+	}
+	
+	pushProprites();
 });
+
+function changeBid(isReloaded){
+	if(localStorage.bid == undefined || !isReloaded){
+		var myBid = prompt('Enter what score you want to play to. Please make it no greater than 500.');
+		socket.emit('newBidForScoreToWinTheGame',myBid);
+		localStorage.bid = myBid;
+	}
+	socket.emit('newBidForScoreToWinTheGame',localStorage.bid);
+}
 
 function changeName(userId){
 	if(userId == socket.id){
@@ -620,6 +648,13 @@ function changeName(userId){
 	}
 }
 
+function pushProprites(){
+	for(let x = 0; x < userList.length; x++){
+		let y = shared.cardDes.products[x].name;
+		let z = shared.cardDes.products[x].value;
+		$('#proprites').append('<li style="color:#ff0088">' + y + ' ' + z + '</li>');
+	}
+}
 /*Initializing the connection with the server via websockets */
 var myTiles = [];
 var playerTradeMatrix = [];
@@ -641,20 +676,9 @@ var newServerTileColor = '#aae0b3';
 var myTurn = false;
 var myUserlistIndex = 0;
 var myUserlistString = "";
+var myBid = undefined;
 
-for (var i = 0;i < 10;i++){
-	var tile = new Tile(
-		(canvas.width/2) + (tileWidth + 20) * (i-2),
-		canvas.height - (tileHeight + 20),
-		tileWidth,
-		tileHeight,
-		'',
-		newTileColor,'#000000','#000000','#000000',
-		20,true
-	);
-	//tile.drawOutline(placeholderColor); //placeholder outline
-	myTiles.push(tile);
-}
+
 socket.on("message",function(message){  
 	/*
 		When server sends data to the client it will trigger "message" event on the client side , by 
@@ -713,6 +737,7 @@ socket.on('showBoard',function(data){
 });
 
 socket.on('tiles', function(tiles){
+	console.log(tiles);
 	serverTiles = tiles;
 	
 	for(var i = 0; i < tiles.length; i++){
@@ -754,6 +779,7 @@ socket.on('gameEnd',()=>{
 		delete t;
 	});
 	myTiles = [];
+	$('#proprites').empty();
 });
 
 function updatePlayValidity(){
@@ -847,7 +873,7 @@ function draw(){
 	setTimeout(draw, 100); //repeat
 }
 
-draw();
+
 
 function resizeCanvas(){
 	canvas.width = window.innerWidth - $('#sidebar').width() - 50;
@@ -939,3 +965,5 @@ function polygon(ctx, x, y, radius, sides, startAngle, anticlockwise) {
 	ctx.closePath();
 	ctx.restore();
 }
+
+draw();

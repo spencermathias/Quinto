@@ -9,8 +9,9 @@
 // TODO: fix chat chat stretch
 
 //events
-var publicAddress = 'http://localhost:8080';
-var internalAddress = 'http://localhost:8080';
+
+var publicAddress = 'http://alanisboard.ddns.net/';
+var internalAddress = 'http://192.168.1.8:8080/';
 
 window.addEventListener('load', function() {
 	var lastTouch = {x:0, y:0};

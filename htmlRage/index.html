@@ -12,7 +12,6 @@
 	
     <body onresize="resizeCanvas()" >
 		<div class = 'container'>
-			<div id="header"></div>
 			<div id="middle">
 				<div id='gameAndOverlay' >
 					<div id='bidOverlay'>
@@ -44,17 +43,13 @@
 					</div>
 					<div id='chat'> CHAT: 
 						<div id='chatlog'></div>
-					</div>
-					<div>
 						<form action="" method="get">
 							<input type="text" id="message" style="display:table-cell; width: 100%"/> <!--text form to send data to the server-->
 							<input type="submit" id="submit" type="button" style=" display:none; width: 100%" value="Send">
-							<div id="response"></div> <!--This is where the data from the server is added-->
 						</form>
 					</div>
 				</div>
 			</div>
-			<div id="footer"></div>
 		</div>
     </body>
 	<script type="text/javascript" src="js/rageSocket.js"></script>

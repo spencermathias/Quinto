@@ -30,6 +30,7 @@ var allClients = [];
 var players = [];
 var spectators = [];
 
+var winScore = 250;
 
 var gameMode = {
     LOBBY: 0,
@@ -121,12 +122,14 @@ io.sockets.on("connection", function(socket) {
 				socket.userData = players[i].userData;
 				players[i] = socket;
 				
-			
-				
+	
 				if(gameStatus === gameMode.PLAY){
 					io.emit('startGame');
 				}
+
 				socket.emit('tiles', socket.userData.tiles);
+				
+				
 			} else {
 				console.log(__line, "new player");
 			}
@@ -237,6 +240,7 @@ io.sockets.on("connection", function(socket) {
 				
 				console.log(__line,"before matrix");
 				printMatrix();
+
 				fromPlayerNumber = players.indexOf(socket);
 				
 				playerTradeMatrix[toPlayerNumber][fromPlayerNumber].forEach(function(bid){
@@ -246,6 +250,7 @@ io.sockets.on("connection", function(socket) {
 				});
 				
 				//the player number of the socket (person attempting the trade)
+
 				if (fromPlayerNumber >= 0){
 					playerTradeMatrix[toPlayerNumber][fromPlayerNumber].push(tileNumbers);
 				}
@@ -255,7 +260,8 @@ io.sockets.on("connection", function(socket) {
 				
 				//console.log(__line,'toPlayerNumber',toPlayerNumber,players[toPlayerNumber].userData.userName);
 				players[toPlayerNumber].emit('tradeMatrix',playerTradeMatrix[toPlayerNumber]);
-				console.log(__line,playerTradeMatrix);
+
+				//console.log(__line,playerTradeMatrix);
 			}
 		} else {
 			console.log(__line,"invalid player number for trade!!!!!!!");
@@ -302,13 +308,13 @@ io.sockets.on("connection", function(socket) {
 					console.log(__line,out);
 					//console.log(__line,'trade',trade);
 					//console.log(__line,'tradeResponse',tradeResponse);
-					
-					let fromPlayerBid;
+
 					
 					//for all cards being traded,
 					for(var i = 0; i< tradeResponse.length; i++){
 						var cardID1 = tradeResponse[i];
 						
+
 						//destroy all invalid trades in the trade matrix  (could be optimized)
 						for(var l=0; l<players.length; l++){
 							for(var m=0; m<players.length; m++){
@@ -341,6 +347,7 @@ io.sockets.on("connection", function(socket) {
 							}
 						}
 						
+
 						//destroy invalid bids for player 1 (from player)
 						for(var j = fromPlayer.userData.bids.length-1; j >= 0 ; j--){
 							var bid = fromPlayer.userData.bids[j];
@@ -479,10 +486,12 @@ function newRound(socket,add){
 	console.log(__line,'p',players.length);
 	
 	//deal new cards
+
 	var discription = shared.cardDes;
 	console.log(discription);
 	discription.products = shared.cardDes.products.slice(0,players.length);
 	tiles = new Deck(discription); //deck to deal to players
+
 	var pile = new Array(tiles.totalCards);
 	for (var i = 0; i < pile.length; i++){ pile[i]=i;}
 	

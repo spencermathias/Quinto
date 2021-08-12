@@ -1,31 +1,49 @@
 # RPi-RTDS
-Raspberry pi realtime data server based on node.js express and socket.io.
 
-To Use:
-0. find out what arm version the cpu on your rasperry pi is with the command: cat /proc/cpuinfo
+1. Install Node:
 
-1. download node from nodejs.org. Go to other downloads and select the arm version that matches the info from the above step.
+For raspberry pi:
 
-2. extract the downloaded file with: tar -xvf 
+	0. find out what arm version the cpu on your rasperry pi is with the command: cat /proc/cpuinfo
 
-3. enter the extracted directory with: cd 
+	1. download node from nodejs.org. Go to other downloads and select the arm version that matches the info from the above step.
 
-4. copy to usr/local with: sudo cp -R * /usr/local/
+	2. extract the downloaded file with: tar -xvf 
 
-5. check if it has installed with: node -v
+	3. enter the extracted directory with: cd 
 
-  it should return the version that you downloaded
+	4. copy to usr/local with: sudo cp -R * /usr/local/
 
-5. (optional) remove the downloaded and extracted files with: rm -r
+	5. check if it has installed with: node -v
 
-6. npm install express --save
-  The warnings at the end are normal
+	  it should return the version that you downloaded
 
-7. npm install socket.io --save
-  The warnings at the end are normal
+	5. (optional) remove the downloaded and extracted files with: rm -r
 
-3. Run node server.js in a command line. 
+For windows:
 
-   This starts a node.js webserver with socket.io to bidirectionally send data between a raspberry pi and a web browser.
+	1. download current (not LTS) node from nodejs.org. https://nodejs.org/en/download/
 
-4. Go to the ip address of the raspberry pi in a webbrowser. The index.html page should appear.
+	2. install node with default options
+
+	
+
+
+
+
+
+2. setup project:
+
+	1. open a terminal in the RPi-RTDS project folder
+
+	2. install dependencies with: npm install
+
+	3. set the public and local ip address in htmlRage->js->rageSocket.js
+	
+		var localAddress = "localhost:8080";
+		
+		var socket = io("192.168.1.xxx:8080"); // <- change this ip to the computers
+
+	4. From the projct folder, run: node .\rageServer.js 
+
+	5. Open a browser and go to localhost or the ip address of the computer. The web page should appear with a dialog box asking for a username

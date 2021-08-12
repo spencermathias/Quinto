@@ -3,7 +3,7 @@
 // put chat log behind a button for mobile; only show the last message for a second
 
 //events
-var publicAddress = 'http://localhost:8080/';
+var publicAddress = 'http://alanisboard.ddns.net/';
 var internalAddress = 'http://localhost:8080/';
 
 window.addEventListener('load', function() {

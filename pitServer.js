@@ -308,10 +308,6 @@ io.sockets.on("connection", function(socket) {
 					console.log(__line,out);
 					//console.log(__line,'trade',trade);
 					//console.log(__line,'tradeResponse',tradeResponse);
-<<<<<<< HEAD
-=======
-
->>>>>>> 69cbbd8261e43ec5cc21a0738986a3e7e9f16d52
 					
 					//for all cards being traded,
 					for(var i = 0; i< tradeResponse.length; i++){
@@ -494,14 +490,10 @@ function newRound(socket,add){
 	discription.products = shared.cardDes.products.slice(0,players.length);
 	discription.products.push({name:'bull',value:20},{name:'bear',value:-20});
 	tiles = new Deck(discription); //deck to deal to players
-<<<<<<< HEAD
 	players.forEach(function(player){
 		player.emit('#ofPlayers',players.length);
 	});
 	console.log(tiles);
-=======
-
->>>>>>> 69cbbd8261e43ec5cc21a0738986a3e7e9f16d52
 	var pile = new Array(tiles.totalCards);
 	for (var i = 0; i < pile.length; i++){ pile[i]=i;}
 	//print all tiles

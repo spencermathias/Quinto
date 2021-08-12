@@ -7,8 +7,6 @@
 var express = require("express");
 var http = require("http");
 var io = require("socket.io");
-var mysql = require('mysql');
-
 //const spawn = require("child_process").spawn;
 
 var app = express();
@@ -21,35 +19,12 @@ var server = http.createServer(app).listen(socket,"0.0.0.0",511,function(){conso
 io = io.listen(server);
 /*initializing the websockets communication , server instance has to be sent as the argument */
 
-
-// DATABASE
-var con = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "rage"
-});
-
-var useDatabase = true;
-con.connect(function(err) {
-  //if (err) throw err;
-  console.warn("Error connecting to MYSQL server. Scores will not be recorded");
-  useDatabase = false;
-});
-
-var gameId = -1; //game id for database
-
-
-// END DATABASE
-
 var minPlayers = 2;
 var maxPlayers = 9; //must increase card number for more players
 var numberOfRounds = 10;
 
 var allClients = [];
 var players = [];
-var spectators = [];
-
 var currentRound = numberOfRounds;
 var currentTurn = 0;
 var firstPlayer;
@@ -107,8 +82,10 @@ var gotBidBonus = 10;
 
 console.log("Server Started!");
 
-function defaultUserData(){
-	return {
+io.sockets.on("connection", function(socket) {
+    /*Associating the callback function to be executed when client visits the page and
+      websocket connection is made */
+    socket.userData = {
 		userName: "Unknown",
 		cards: [],
 		cardSelected: noneCard,
@@ -117,29 +94,19 @@ function defaultUserData(){
 		score: 0,
 		handScore: 0
 	};
-}
-
-
-io.sockets.on("connection", function(socket) {
-    /*Associating the callback function to be executed when client visits the page and
-      websocket connection is made */
-	socket.userData = defaultUserData();
 
     allClients.push(socket);
     if (gameStatus === gameMode.LOBBY) {
         socket.userData.statusColor = notReadyColor;
     } else {
-		spectators.push(socket);
         socket.userData.statusColor = spectatorColor;
         updateBoard(socket, notReadyTitleColor, true);
-		updateUsers();
     }
 
     var message_to_client = {
         data:"Connection established!",
         color: serverColor
     };
-	
     socket.emit("message",JSON.stringify(message_to_client));
     socket.emit("trumpCard", trumpCard);
 
@@ -148,15 +115,10 @@ io.sockets.on("connection", function(socket) {
 
     socket.on("disconnect",function() {
 		message( io.sockets, "" + socket.userData.userName + " has left.", serverColor);
-		message( io.sockets, "Type 'kick' to kick disconnected players", serverColor);
         console.log(__line,"disconnected: " + socket.userData.userName + ": " + socket.id);
         var i = allClients.indexOf(socket);
-        if(i >= 0){ allClients.splice(i, 1); }
-		var i = spectators.indexOf(socket);
-        if(i >= 0){ spectators.splice(i, 1); }
-        //players only removed if kicked
-		updateUsers();
-		/*i = players.indexOf(socket);
+        allClients.splice(i, 1);
+        i = players.indexOf(socket);
         players.splice(i, 1);
 		if( players.length < 2) {
 			gameEnd();
@@ -164,30 +126,8 @@ io.sockets.on("connection", function(socket) {
 			checkForAllBids();
 			checkForAllCards();
 			updateUsers();
-		}*/
-    });
-	
-	socket.on('oldId', function(id){ 
-		console.log(__line, "oldID:", id);
-		for(var i = 0; i < players.length; i++){
-			if(players[i].id == id){
-				console.log(__line, "found old player!", players[i].userData.username, socket.userData.userName);
-				var j = spectators.indexOf(socket);
-				if(j >= 0){spectators.splice(j, 1)};
-				socket.userData = players[i].userData;
-				players[i] = socket;
-				socket.emit("cards", socket.userData.cards); //update player cards
-				if(gameStatus == gameMode.BID){
-					socket.emit("requestBid");
-				} else {
-					socket.emit("allBidsIn");
-				}
-				updateTurnColor();
-			} else {
-				console.log(__line, "new player");
-			}
 		}
-	});
+    });
 
     socket.on("message",function(data) {
         /*This event is triggered at the server side when client sends the data using socket.send() method */
@@ -204,20 +144,7 @@ io.sockets.on("connection", function(socket) {
         } else if(data.message === "start") {
             console.log(__line,"forced start");
             gameStart();
-        } else if(data.message.toLowerCase() === "kick"){
-			console.log(__line, "clearing players");
-			for(var i = players.length-1; i >= 0; i--){
-				if(players[i].disconnected){
-					message( io.sockets, "" + players[i].userData.userName + " has been kicked!", chatColor);
-					players.splice(i, 1);
-				}
-			}
-			if( players.length < minPlayers) {
-				gameEnd();
-			} else {
-				updateTurnColor();
-			}
-		}
+        }
         /*Sending the Acknowledgement back to the client , this will trigger "message" event on the clients side*/
     });
 
@@ -263,7 +190,7 @@ io.sockets.on("connection", function(socket) {
         }
     }); */
 
-    socket.on("userName", function(userName) {  //TODO Update new user to userName
+    socket.on("newUser", function(userName) {
         socket.userData.userName = userName;
         socket.userData.ready = false;
         console.log(__line,"added new user: " + socket.userData.userName);
@@ -278,7 +205,7 @@ io.sockets.on("connection", function(socket) {
 				socket.userData.statusColor = readyColor;
 				updateBoard(socket, readyTitleColor , false);
 			} else {
-				//var i = players.indexOf(socket);
+				var i = players.indexOf(socket);
 				socket.userData.statusColor = notReadyColor;
 				updateBoard(socket, notReadyTitleColor , false);
 			}
@@ -437,24 +364,6 @@ function checkStart() {
 }
 
 function gameStart() {
-	if(useDatabase){
-		//get new game id
-		function getGameIDCallBack(err, result, fields) {
-			console.log(__line,"aaaaaaaaaaaaaaaaa", err, result);
-			if (err) throw err;
-			if (result.length < 1){
-				gameId = 0;
-			} else {
-				gameId = result[0].game_id+1;
-			}
-			//console.log(__line, "game id result: ", gameId);
-		}
-	
-		con.query("SELECT game_id FROM data_per_round ORDER BY game_id DESC, id DESC LIMIT 1", getGameIDCallBack);
-	}
-
-	
-	
 	currentRound = numberOfRounds;
 	currentTurn = 0;
 	if(players.length > 0){
@@ -625,18 +534,6 @@ function checkForAllBids() {
 				bidTotal += player.userData.bid;
 				player.emit('playerLeadsRound', false); //turn off 'you lead' sign
 			});
-			
-			if(useDatabase){
-				//log # bid on # to database
-				console.log(__line, "gameId to send:", gameId);
-				let sql = "INSERT INTO data_per_round (Game_Id, Total_Bid, Hand_Size) VALUES (?, ?, ?)";
-				con.query(sql, [gameId, bidTotal, currentRound], function (err, result) {
-					if (err) throw err;
-					console.log("1 record inserted");
-				});
-			}
-			
-			
 			message( io.sockets, bidTotal + " bid on " + currentRound, gameColor);
 			gameStatus = gameMode.PLAY;
 			tallyScoreFromHand(); //show initial score
@@ -844,7 +741,7 @@ function addHandScoreToTotal(){
 }
 
 function finishRound() {
-    currentRound -= 1;
+    currentRound -= 2;
     if( currentRound > 0) {
         startRound();
     } else {

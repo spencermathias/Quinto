@@ -1,38 +1,42 @@
-body {
-	height:100%;
+@font-face {
+	font-family: 'Arimo';
+	src: url('../fonts/Arimo-Bold.ttf') format('truetype');
 }
 
 .container { 
+	display:flex;
+	flex-direction: column;
 	position:absolute;
-	margin:0;
 	top: 0;
 	bottom: 0;
 	left: 0;
 	right: 0;
 	background: #cccccc;
-	
-	display: flex;
-	flex-direction: column;
 
 	font-family: "Arial Black", Gadget, Arial, sans-serif;
 	font-style: normal;
 	font-variant: normal;
 	font-weight: 900;
 	line-height: 1.25;
-	
-	overflow:hidden;
+}
+
+#header {
+	display: none; /* flex */
+	border:5px solid #0000ff; 
+	flex-grow: 1;
 }
 
 #middle {
-	height:100vh;
 	display: flex;
 	flex-direction: row;
+	flex-grow: 100;
+	flex-basis:auto;
 }
 
 #gameAndOverlay{
 	display: flex;
 	flex-direction: column;
-	width:80%;
+	width:100%;
 }
 
 #content {
@@ -46,17 +50,33 @@ body {
 
 #gameBoard {
 	display: none; /* none */
-	/* cursor: default; */
-	/* border:1px solid #ffffff; */
+	flex-grow:1;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	border:1px solid #ffffff;*/
+	cursor: default;
 }
 
 #sidebar {
+	display: flex;
+	flex-direction: column;
 	/* border: 1px solid #00aa00; */
 	width: 20%;
-	/* min-width: 200px; */
+	min-width: 200px;
 	padding: 5px;
 	color: #FFFFFF;
 	background: #888888;
+	overflow: hidden;
+	overflow-y: hidden;
+	height:100%;
+}
+
+#footer { 
+	display: none; /* flex */
+	border:5px solid #ff0000;
+	width:100%;
+	flex-grow: 1;
 }
 
 * { /* keeps boxes from being bigger than they are*/
@@ -67,7 +87,7 @@ body {
 
 #title {
 	display: flex;
-	font-family: "Arial Black", Gadget, sans-serif;
+	/* font-family: "Arial Black", Gadget, sans-serif; */
 	
 	font-size: 14vw;
 	justify-content: center;
@@ -80,7 +100,7 @@ body {
 
 #subtitle{
 	display: flex;
-	font-family: "Arial Black", Gadget, sans-serif;
+	/* font-family: "Arial Black", Gadget, sans-serif; */
 	
 	font-size: 1vw;
 	justify-content: center;
@@ -92,11 +112,14 @@ body {
 }
 
 #users{
-	height: 20vh;
+	display: flex;
+	flex-direction: column;
+	height: 20%;
 }
 
 #userlist{
-	height:100%;
+	display: flex;
+	flex-direction: column;
 	overflow-y: hidden;
 }
 
@@ -105,83 +128,21 @@ body {
 }
 
 #chat{
-	height: 75vh;
+	display: flex;
+	flex-direction: column;
+	height: 90%;
+	overflow-y: hidden;
 }
 
 #chatlog{
+	display: flex;
+	flex-direction: column;
 	overflow-y: hidden;
 	height: 100%;
 }
 
 #chatlog:hover{
 	/*overflow-y: scroll;/* no need since the scroll bottom locks the scroll bar*/
-}
-
-#bidOverlay{
-	display: none; /*none*/
-	background: rgba(0,0,0,.5);
-	align-items: center;
-	justify-content: center;
-	flex-direction: column;
-	align-self: flex-start;
-	width: 100%;
-}
-
-#bidTitle{
-	display: flex;
-	margin-top: .5vh;
-	font-size: 3vh;
-	max-height: 30px;
-	/* border:1px solid #ffffff; */
-}
-
-#bidArray{
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex-direction: row;
-	margin: .5vh;
-	margin-top: 0;
-	margin-bottom: 0;
-	padding: .5vh;
-	width: 100%;
-	/* border:1px solid #ffffff; */
-}
-
-#leadMessage{
-	display: none;
-	color: yellow;
-	font-size: 3vh;
-	max-height: 30px;
-	margin-top: 0;
-	margin-bottom: .5vh;
-	/* border:1px solid #ffffff; */
-}
-
-.bidButton {
-	display: flex;
-	height: 6vw;
-
-	flex-grow: 1;
-	background: #aaaaaa;
-	cursor: default;
-	justify-content: center;
-	align-items: center;
-	flex-direction: row;
-	line-height: 1;
-	font-size: 3vh;
-	border-radius: 4px;
-	
-	margin: .5vh;
-	padding: .5vh;
-}
-
-.bidButton.selected{
-	background: #888888;
-}
-
-.bidButton:hover {
-	background: #888888;
 }
 
 ::-webkit-scrollbar {

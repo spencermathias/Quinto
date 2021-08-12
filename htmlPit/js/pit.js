@@ -9,9 +9,8 @@
 // TODO: fix chat chat stretch
 
 //events
-
-var publicAddress = 'http://alanisboard.ddns.net/';
-var internalAddress = 'http://192.168.1.8:8080/';
+var publicAddress = 'http://localhost:8080';
+var internalAddress = 'http://localhost:8080';
 
 window.addEventListener('load', function() {
 	var lastTouch = {x:0, y:0};
@@ -85,6 +84,7 @@ var tileWidth = 40 //* window.devicePixelRatio;
 var tileHeight = 40 //* window.devicePixelRatio;
 var tileFontSize = 30 //* window.devicePixelRatio;
 var tilePadding = 5;
+var allTiles = new Deck(shared.cardDes);
 var serverTiles = [];
 var selected = undefined;
 var scoreIsValid = false;	
@@ -593,12 +593,10 @@ socket.on('tradeMatrix',(tradeMatrix)=>{
 
 socket.on('allTiles', function(inAllTiles){
 	allTiles = inAllTiles;
-	console.log(allTiles.getProperties(0));
 });
 
 socket.on('startGame',()=>{
 	console.log(userList);
-	updateDeck();
 	var textsize = 40;
 	var y = textsize;
 	userList.forEach((userName,i)=> {
@@ -666,7 +664,6 @@ var board = new Board(canvas.width/2, canvas.height/2, boardState.length, boardS
 var submitButton = new SubmitButton();
 var shapes = [[],[],[]];
 var userList = [];
-var allTiles = undefined;
 var spectatorColor = "#444444";
 var yourTurnColor = "#0000ff";
 var newTileColor = "Chocolate";
@@ -700,7 +697,6 @@ socket.on("message",function(message){
 socket.on('userList',function(data){
 	var userListString = '';
 	userList = data;
-	//updateDeck();
 	for( var i = 0; i < data.length; i++ ){
 		var header = 'div id="userListDiv'+ i + '"';
 		var click = 'onclick="changeName(' + "'" + data[i].id + "'" + ')"';
@@ -730,14 +726,6 @@ socket.on('userList',function(data){
 	tradingUi.forEach((i)=>{
 		i.updateVisibility();
 	});
-});
-
-socket.on('#ofPlayers',function(playerAmount){
-	let cardDes = shared.cardDes;
-	cardDes.products = shared.cardDes.products.slice(0,playerAmount);
-	cardDes.products.push({name:'bull',value:20},{name:'bear',value:-20});
-	allTiles = new Deck(cardDes);
-	console.log(cardDes,allTiles);
 });
 
 socket.on('showBoard',function(data){
@@ -792,14 +780,6 @@ socket.on('gameEnd',()=>{
 	myTiles = [];
 	$('#proprites').empty();
 });
-
-function updateDeck(){
-	let cardDes = shared.cardDes;
-	cardDes.products = shared.cardDes.products.slice(0,userList.length);
-	cardDes.products.push({name:'bull',value:20},{name:'bear',value:-20});
-	allTiles = new Deck(cardDes);
-	console.log(cardDes,allTiles);
-}
 
 function updatePlayValidity(){
 	var check = shared.validTilesToPlay(serverTiles, getTileData(newState), getTileData(boardState), allTiles);

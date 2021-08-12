@@ -35,6 +35,11 @@ class Deck{
 		
 		return cardProp
 	}
+	
+	//overload when creating deck
+	drawCard(ctx, cardNum){
+		console.warn('draw not defined');
+	}
 }
 
 //try/catch to allow use on client and server side

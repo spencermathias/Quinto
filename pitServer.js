@@ -78,9 +78,10 @@ function defaultUserData(){
 var stolenCard = {message:"You don't own that card!"}
 
 io.sockets.on("connection", function(socket) {
+	//console.log('in the conection loop');
     socket.userData = defaultUserData();
 
-    allClients.push(socket);
+	//console.log(socket.userData.tiles);
     if (gameStatus === gameMode.LOBBY) {
         socket.userData.statusColor = notReadyColor;
     } else {
@@ -90,7 +91,7 @@ io.sockets.on("connection", function(socket) {
 		updateUsers(socket);
     }
 
-	message(socket, "Connection established!", serverColor)
+	message(socket, "Connection established!", serverColor);
 
     console.log(__line, "Socket.io Connection with client " + socket.id +" established");
 
@@ -416,10 +417,14 @@ io.sockets.on("connection", function(socket) {
 	socket.on('cheakEndOfRound',function(){
 		var add = cheakWin(socket.userData.tiles);
 		console.log(__line,'check end of round for ', socket.userData.userName,socket.userData.tiles);
-		if(add!= 0){
+		if(add > 0){
+			players.forEach(function(player){
+				player.userData.score += cheakWin(player.userData.tiles);
+			});
 			newRound(socket,add);
 		}
 	});
+	allClients.push(socket);
 });
 
 function printMatrix(){
@@ -491,18 +496,43 @@ function newRound(socket,add){
 	var discription = shared.cardDes;
 	console.log(discription);
 	discription.products = shared.cardDes.products.slice(0,players.length);
+	discription.products.push({name:'bull',value:20},{name:'bear',value:20});
 	tiles = new Deck(discription); //deck to deal to players
 	players.forEach(function(player){
 		player.emit('#ofPlayers',players.length);
 	});
 	console.log(tiles);
 	var pile = new Array(tiles.totalCards);
-	for (var i = 0; i < pile.length; i++){ pile[i]=i;}
+	for (var i = 0; i < pile.length; i++){
+		pile[i]=i;
+	}
 	
 	//print all tiles
 	for (var i = 0; i < pile.length; i++){
+		var bulls = 0;
+		var bears = 0;
+		for(var x = 0;x < pile.length;x++){
+			if(tiles.getProperties(pile[x]).products.name == 'bull'){bulls++;}
+			if(tiles.getProperties(pile[x]).products.name == 'bear'){bears++;}
+		}
 		//console.log(__line,'cards',pile[i],tiles.getProperties(pile[i]));
 	}
+	
+	while(bulls > 1 || bears > 1){
+		for (var i = 0; i < pile.length; i++){
+			if((tiles.getProperties(pile[i]).products.name == 'bull' || tiles.getProperties(pile[i]).products.name == 'bear') && tiles.getProperties(pile[i]).number > 1){pile.splice(i,1);}
+			//console.log(__line,'cards',pile[i],tiles.getProperties(pile[i]));
+			bulls = 0;
+			bears = 0;
+			for(var x = 0;x < pile.length;x++){
+				if(tiles.getProperties(pile[x]).products.name == 'bull'){bulls++;}
+				if(tiles.getProperties(pile[x]).products.name == 'bear'){bears++;}
+			}
+		}
+	}
+	pile.forEach(function(card){
+		console.log(tiles.getProperties(card));
+	});
 	
 	//console.log(__line, "cards", pile) ;
 	//console.log(__line, "cards", tiles);
@@ -514,7 +544,10 @@ function newRound(socket,add){
 }
 
 function cheakWin(tilesToCheak){
-	deck = new Deck( shared.cardDes);
+	let discription = shared.cardDes;
+	discription.products = discription.products.slice(0,players.length);
+	discription.products.push({name:'bull',value:20},{name:'bear',value:-20});
+	deck = new Deck(discription);
 	cardCount = {};
 	shared.cardDes.products.forEach((i)=>{
 		cardCount[i.name] = {card:i,count:0};
@@ -524,6 +557,11 @@ function cheakWin(tilesToCheak){
 		var cardProp = deck.getProperties(i);
 		console.log(__line,i,cardProp);
 		if (cardProp.products != undefined){
+			if(cardProp.products.name == 'bull'){
+				for(var x = 0;x < cardCount;x++){
+					cardCount[x].count++;
+				}
+			}
 			cardCount[cardProp.products.name].count++;
 		}
 	});
@@ -532,10 +570,35 @@ function cheakWin(tilesToCheak){
 	Object.keys(cardCount).forEach((i)=>{
 		//console.log(__line,cardCount[i]);
 		//console.log(__line,cardCount[i].count);
-		if (cardCount[i].count>=9){
+		if (cardCount[i].count == 9){
 			//console.log(__line,'should be in there',cardCount[i].card.value);
+			
 			add = cardCount[i].card.value;
+			
+		}else{
+			let bullFound = false;
+			let bearFound = false;
+			tilesToCheak.forEach(function(tile){
+				if(deck.getProperties(tile).products.name == 'bull'){
+					bullFound = true;
+				}
+				if(deck.getProperties(tile).products.name == 'bear'){
+					bearFound = true;
+				}
+			});
+			if(cardCount[i].count == 10){
+				add = cardCount[i].card.value * 2;
+			}else{
+				if(bullFound){
+					add-=20;
+				}
+				if(bearFound){
+					add-=20;
+				}
+			}
 		}
+		console.log(cardCount);
+		
 	});
 	return add;
 }

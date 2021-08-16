@@ -10,8 +10,8 @@
 
 //events
 
-var publicAddress = 'http://alanisboard.ddns.net/';
-var internalAddress = 'http://192.168.1.8:8080/';
+var publicAddress = 'localhost:8080/';
+var internalAddress = 'localhost:8080/';
 
 window.addEventListener('load', function() {
 	var lastTouch = {x:0, y:0};
@@ -594,6 +594,13 @@ socket.on('tradeMatrix',(tradeMatrix)=>{
 
 socket.on('allTiles', function(inAllTiles){
 	allTiles = inAllTiles;
+});
+
+socket.on('#ofPlayers',function(playerAmount){
+	let discription = shared.cardDes;
+	discription.products = discription.products.slice(0,playerAmount);
+	discription.products.push({name:'bull',value:20},{name:'bear',value:-20});
+	allTiles = new Deck(discription);
 });
 
 socket.on('startGame',()=>{

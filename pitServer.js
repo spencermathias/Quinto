@@ -274,7 +274,7 @@ io.sockets.on("connection", function(socket) {
 		if((userNumber >=0)&&(userNumber < players.length)){
 			
 			console.log(__line,"before matrix");
-			printMatrix();
+			//printMatrix();
 			
 			let fromPlayerNumber = players.indexOf(socket);
 			let fromPlayer = socket;
@@ -283,7 +283,7 @@ io.sockets.on("connection", function(socket) {
 			let trade = playerTradeMatrix[fromPlayerNumber][userNumber].pop(); //TODO: make random?? also might get lost if trade response fails
 			
 			console.log(__line,"after matrix");
-			printMatrix();
+			//printMatrix();
 			
 			if(trade != undefined){
 				console.log(__line,'popped trade fromPlayerNumber',trade,fromPlayerNumber);
@@ -321,7 +321,7 @@ io.sockets.on("connection", function(socket) {
 						for(var l=0; l<players.length; l++){
 							for(var m=0; m<players.length; m++){
 								var tradeArray = playerTradeMatrix[l][m];
-								console.log(__line,cardID1,cardID2,tradeArray,playerTradeMatrix,tradeResponse);
+								//console.log(__line,cardID1,cardID2,tradeArray,playerTradeMatrix,tradeResponse);
 								
 								var bidMatchingTrade = undefined;
 								for(var x = 0;x < players[l].userData.bids.length;x++){
@@ -377,7 +377,7 @@ io.sockets.on("connection", function(socket) {
 					
 					
 					console.log(__line, "After deleting from trade Matrix");
-					printMatrix();
+					//printMatrix();
 					
 					//swap cards in trade
 
@@ -416,13 +416,19 @@ io.sockets.on("connection", function(socket) {
 	
 	socket.on('cheakEndOfRound',function(){
 		var add = cheakWin(socket.userData.tiles);
-		console.log(__line,'check end of round for ', socket.userData.userName,socket.userData.tiles);
+		//console.log(__line,'check end of round for ', socket.userData.userName,socket.userData.tiles);
 		if(add > 0){
 			players.forEach(function(player){
-				player.userData.score += cheakWin(player.userData.tiles);
+				if(player != socket){
+					player.userData.score += cheakWin(player.userData.tiles);
+				}
 			});
 			newRound(socket,add);
 		}
+	});
+	
+	socket.on('cardsNotMatching',function(){
+		message(socket,'you must trade cards that are the same comoniy or the bull',gameErrorColor);
 	});
 	allClients.push(socket);
 });
@@ -464,7 +470,7 @@ function printMatrix(){
 
 
 function newRound(socket,add){
-	console.log(__line,'user check',socket !== undefined);
+	//console.log(__line,'user check',socket !== undefined);
 	if (socket !== undefined){ 
 		message(io.sockets,socket.userData.userName + ' won that round',gameColor);
 		socket.userData.score += add;
@@ -494,14 +500,14 @@ function newRound(socket,add){
 	//deal new cards
 
 	var discription = shared.cardDes;
-	console.log(discription);
+	//console.log(discription);
 	discription.products = shared.cardDes.products.slice(0,players.length);
 	discription.products.push({name:'bull',value:20},{name:'bear',value:20});
 	tiles = new Deck(discription); //deck to deal to players
 	players.forEach(function(player){
 		player.emit('#ofPlayers',players.length);
 	});
-	console.log(tiles);
+	//console.log(tiles);
 	var pile = new Array(tiles.totalCards);
 	for (var i = 0; i < pile.length; i++){
 		pile[i]=i;
@@ -531,7 +537,7 @@ function newRound(socket,add){
 		}
 	}
 	pile.forEach(function(card){
-		console.log(tiles.getProperties(card));
+		//console.log(tiles.getProperties(card));
 	});
 	
 	//console.log(__line, "cards", pile) ;
@@ -549,57 +555,67 @@ function cheakWin(tilesToCheak){
 	discription.products.push({name:'bull',value:20},{name:'bear',value:-20});
 	deck = new Deck(discription);
 	cardCount = {};
+	let cardAmount = players.length + 2;
 	shared.cardDes.products.forEach((i)=>{
 		cardCount[i.name] = {card:i,count:0};
 	});
 	
 	tilesToCheak.forEach((i)=>{
 		var cardProp = deck.getProperties(i);
-		console.log(__line,i,cardProp);
+		//console.log(__line,i,cardProp);
 		if (cardProp.products != undefined){
 			if(cardProp.products.name == 'bull'){
-				for(var x = 0;x < cardCount;x++){
-					cardCount[x].count++;
+				for(var x = 0;x < cardAmount;x++){
+					cardCount[discription.products[x].name].count++;
+					//console.log(discription.products[x].name);
 				}
+				console.log('in bull loop')
 			}
 			cardCount[cardProp.products.name].count++;
+			//console.log(cardProp.products.name)
 		}
 	});
-	console.log(__line,'cardCount',cardCount);
+	//console.log(__line,'cardCount',cardCount);
 	var add = 0;
+	var foundWinningComonity = false;
+	
+	var bullFound = false;
+	var bearFound = false;
+	tilesToCheak.forEach(function(tile){
+		if(deck.getProperties(tile).products.name == 'bull'){
+			bullFound = true;
+		}
+		if(deck.getProperties(tile).products.name == 'bear'){
+			bearFound = true;
+		}
+	});
 	Object.keys(cardCount).forEach((i)=>{
 		//console.log(__line,cardCount[i]);
 		//console.log(__line,cardCount[i].count);
-		if (cardCount[i].count == 9){
+		if (cardCount[i].count == 9 && !bearFound){
 			//console.log(__line,'should be in there',cardCount[i].card.value);
 			
 			add = cardCount[i].card.value;
-			
+			foundWinningComonity = true;
 		}else{
-			let bullFound = false;
-			let bearFound = false;
-			tilesToCheak.forEach(function(tile){
-				if(deck.getProperties(tile).products.name == 'bull'){
-					bullFound = true;
-				}
-				if(deck.getProperties(tile).products.name == 'bear'){
-					bearFound = true;
-				}
-			});
 			if(cardCount[i].count == 10){
 				add = cardCount[i].card.value * 2;
-			}else{
-				if(bullFound){
-					add-=20;
-				}
-				if(bearFound){
-					add-=20;
-				}
+				//console.log(add);
+				foundWinningComonity = true;
 			}
 		}
-		console.log(cardCount);
+		//console.log(cardCount);
 		
 	});
+	if(!foundWinningComonity){
+		if(bullFound){
+			add -= 20;
+		}
+		if(bearFound){
+			add -= 20;
+		}
+	}
+	console.log(add)
 	return add;
 }
 
@@ -658,7 +674,7 @@ function getUserSendData(client){
 	let trades = [0,0,0,0];
 	client.userData.trades.forEach((b)=>{
 		trades[b.length-1]++;
-		console.log(__line,client.userData.trades)
+		//console.log(__line,client.userData.trades)
 	});
 	console.log(trades);
 	return{

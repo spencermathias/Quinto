@@ -417,9 +417,10 @@ function checkCardSelection(){
 			if (type == undefined){
 				type = t.text;
 				sendCards.push(t.cardNumber);
-			}else if(t.text == type){
+			}else if(t.text == type || t.text == 'bull'){
 				sendCards.push(t.cardNumber);//TODO:include bull and bear
 			}else{
+				socket.emit('cardsNotMatching');
 				throw mismatchedCardsError;
 			}
 		}

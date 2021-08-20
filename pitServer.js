@@ -157,6 +157,7 @@ io.sockets.on("connection", function(socket) {
 				message(socket,'Your bid consists of caracters that are not numbers. please only insert numbers.',gameErrorColor);
 			}
 		}
+		updateUsers();
 
 	});
 

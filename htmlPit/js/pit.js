@@ -635,10 +635,11 @@ socket.on('startGame',()=>{
 function changeBid(isReloaded){
 	if(localStorage.bid == undefined || !isReloaded){
 		var myBid = prompt('Enter what score you want to play to. Please make it no greater than 500.');
-		socket.emit('newBidForScoreToWinTheGame',myBid);
-		localStorage.bid = myBid;
+		if(parseInt(myBid) >= 0){
+			socket.emit('newBidForScoreToWinTheGame',myBid);
+			localStorage.bid = myBid;
+		}
 	}
-	socket.emit('newBidForScoreToWinTheGame',localStorage.bid);
 }
 
 function changeName(userId){

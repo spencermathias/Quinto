@@ -10,8 +10,8 @@
 
 //events
 
-var publicAddress = 'http://alanisboard.ddns.net/';
-var internalAddress = 'http://192.168.1.8:8080/';
+var publicAddress = 'localhost:8080/';
+var internalAddress = 'localhost:8080/';
 
 window.addEventListener('load', function() {
 	var lastTouch = {x:0, y:0};
@@ -417,9 +417,10 @@ function checkCardSelection(){
 			if (type == undefined){
 				type = t.text;
 				sendCards.push(t.cardNumber);
-			}else if(t.text == type){
+			}else if(t.text == type || t.text == 'bull'){
 				sendCards.push(t.cardNumber);//TODO:include bull and bear
 			}else{
+				socket.emit('cardsNotMatching');
 				throw mismatchedCardsError;
 			}
 		}
@@ -596,6 +597,13 @@ socket.on('allTiles', function(inAllTiles){
 	allTiles = inAllTiles;
 });
 
+socket.on('#ofPlayers',function(playerAmount){
+	let discription = shared.cardDes;
+	discription.products = discription.products.slice(0,playerAmount);
+	discription.products.push({name:'bull',value:20},{name:'bear',value:-20});
+	allTiles = new Deck(discription);
+});
+
 socket.on('startGame',()=>{
 	console.log(userList);
 	var textsize = 40;
@@ -627,10 +635,11 @@ socket.on('startGame',()=>{
 function changeBid(isReloaded){
 	if(localStorage.bid == undefined || !isReloaded){
 		var myBid = prompt('Enter what score you want to play to. Please make it no greater than 500.');
-		socket.emit('newBidForScoreToWinTheGame',myBid);
-		localStorage.bid = myBid;
+		if(parseInt(myBid) >= 0){
+			socket.emit('newBidForScoreToWinTheGame',myBid);
+			localStorage.bid = myBid;
+		}
 	}
-	socket.emit('newBidForScoreToWinTheGame',localStorage.bid);
 }
 
 function changeName(userId){

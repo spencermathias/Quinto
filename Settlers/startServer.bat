@@ -1,1 +1,0 @@
-node --experimental-modules .\settlersServer.mjs

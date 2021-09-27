@@ -1,4 +1,4 @@
-# RPi-RTDS
+# Quinto
 
 1. Install Node:
 

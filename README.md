@@ -27,9 +27,6 @@ For windows:
 	2. install node with default options
 
 
-
-
-
 2. setup project:
 
 	1. open a terminal in the RPi-RTDS project folder

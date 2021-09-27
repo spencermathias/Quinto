@@ -26,8 +26,6 @@ For windows:
 
 	2. install node with default options
 
-	
-
 
 
 

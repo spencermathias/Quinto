@@ -23,6 +23,7 @@ body {
 	overflow:hidden;
 }
 
+
 #middle {
 	height:100vh;
 	display: flex;
@@ -110,79 +111,14 @@ body {
 
 #chatlog{
 	overflow-y: hidden;
-	height: 100%;
+	height: 90%;
 }
 
 #chatlog:hover{
 	/*overflow-y: scroll;/* no need since the scroll bottom locks the scroll bar*/
 }
 
-#bidOverlay{
-	display: none; /*none*/
-	background: rgba(0,0,0,.5);
-	align-items: center;
-	justify-content: center;
-	flex-direction: column;
-	align-self: flex-start;
-	width: 100%;
-}
 
-#bidTitle{
-	display: flex;
-	margin-top: .5vh;
-	font-size: 3vh;
-	max-height: 30px;
-	/* border:1px solid #ffffff; */
-}
-
-#bidArray{
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex-direction: row;
-	margin: .5vh;
-	margin-top: 0;
-	margin-bottom: 0;
-	padding: .5vh;
-	width: 100%;
-	/* border:1px solid #ffffff; */
-}
-
-#leadMessage{
-	display: none;
-	color: yellow;
-	font-size: 3vh;
-	max-height: 30px;
-	margin-top: 0;
-	margin-bottom: .5vh;
-	/* border:1px solid #ffffff; */
-}
-
-.bidButton {
-	display: flex;
-	height: 6vw;
-
-	flex-grow: 1;
-	background: #aaaaaa;
-	cursor: default;
-	justify-content: center;
-	align-items: center;
-	flex-direction: row;
-	line-height: 1;
-	font-size: 3vh;
-	border-radius: 4px;
-	
-	margin: .5vh;
-	padding: .5vh;
-}
-
-.bidButton.selected{
-	background: #888888;
-}
-
-.bidButton:hover {
-	background: #888888;
-}
 
 ::-webkit-scrollbar {
     width: 12px;

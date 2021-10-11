@@ -2,23 +2,18 @@
 //TODO: be able to turn in tiles and get new ones
 //TODO: send current board state to new connections
 //subtract remaining tiles
-
-var express = require("express");
-var http = require("http");
-var io = require("socket.io");
+var comms = require("../template files for games/comunicationModule.js")
+serverconfigObject=require('./serverconfig.js')
+var io = comms.createServer(serverconfigObject);
 var shared = require('./htmlQuinto/js/shared.js'); //get shared functions
 
 //const spawn = require("child_process").spawn;
-
-var app = express();
-app.use(express.static("./htmlQuinto")); //working directory
+//debugger
+var app = comms.clientfiles();
+app.use("./htmlQuinto"); //working directory
 //Specifying the public folder of the server to make the html accesible using the static middleware
 
-var socket = 8080;
-//var server = http.createServer(app).listen(8080); //Server listens on the port 8124
-var server = http.createServer(app).listen(socket,"0.0.0.0",511,function(){console.log(__line,"Server connected to socket: "+socket);});//Server listens on the port 8124
-io = io.listen(server);
-/*initializing the websockets communication , server instance has to be sent as the argument */
+
 
 var minPlayers = 2;
 var maxPlayers = 20;

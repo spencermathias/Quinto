@@ -1,3 +1,5 @@
 module.exports={
 	serverPath:"quintoServer.js",
-	clientFolder:'htmlQuinto'}
+	clientFolder:'htmlQuinto',
+	standAlonePort:8081,
+	keepsockets:false}

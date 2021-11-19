@@ -66,7 +66,7 @@ function titleFunction(){
 }
 
 var soundsAllowed = false;
-var ding = new Audio('sounds/echoed-ding.mp3');
+var ding = new Audio('../sounds/echoed-ding.mp3');
 function allowAudio(){
 	if (!soundsAllowed){
 		ding.load();
@@ -334,13 +334,13 @@ class Board {
 //socket stuff
 
 
-var socket = io(window.location.href); //publicAddress try public address //"24.42.206.240" for alabama
+var socket = io(publicAddress); //try public address //"24.42.206.240" for alabama
 
 var trylocal = 0;
 socket.on('connect_error',function(error){
 	console.log("I got an error!", error);
-	//console.log("socket to:", socket.disconnect().io.uri, "has been closed.");
-	/*if(!trylocal){ //prevent loops
+	console.log("socket to:", socket.disconnect().io.uri, "has been closed.");
+	if(!trylocal){ //prevent loops
 		if(window.location.href != internalAddress){
 			window.location.replace(internalAddress);
 		}
@@ -348,15 +348,11 @@ socket.on('connect_error',function(error){
 		console.log("Switching to local url:", socket.io.uri);
 		console.log("Connecting to:",socket.connect().io.uri);
 		trylocal = 1;
-	}*/
+	}
 });
 
 socket.on('reconnect', function(attempt){
 	console.log("reconnect attempt number:", attempt);
-});
-
-socket.on('disconnect',function(reason){
-	console.log(reason)
 });
 
 socket.on('connect', function(){

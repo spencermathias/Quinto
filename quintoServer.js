@@ -7,14 +7,15 @@ var express = require("express");
 var http = require("http");
 var io = require("socket.io");
 var shared = require('./htmlQuinto/js/shared.js'); //get shared functions
+var comms = require("../template files for games/comunicationModule.js")
 
-//const spawn = require("child_process").spawn;
 
 var app = express();
 app.use(express.static("./htmlQuinto")); //working directory
 //Specifying the public folder of the server to make the html accesible using the static middleware
 
-var socket = 8080;
+var socket = comms.proxyport(8080);
+console.log(socket, 'is passed socket')
 //var server = http.createServer(app).listen(8080); //Server listens on the port 8124
 var server = http.createServer(app).listen(socket,"0.0.0.0",511,function(){console.log(__line,"Server connected to socket: "+socket);});//Server listens on the port 8124
 io = io.listen(server);
@@ -106,6 +107,7 @@ io.sockets.on("connection", function(socket) {
 	message(socket, "Connection established!", serverColor)
 
     console.log(__line, "Socket.io Connection with client " + socket.id +" established");
+	console.log(socket.nsp)
 
     socket.on("disconnect",function() {
 		message( io.sockets, "" + socket.userData.userName + " has left.", serverColor);

@@ -26,11 +26,6 @@ For windows:
 
 	2. install node with default options
 
-	
-
-
-
-
 
 2. setup project:
 

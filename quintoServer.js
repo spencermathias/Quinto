@@ -4,7 +4,7 @@
 //subtract remaining tiles
 var comms = require("../template files for games/comunicationModule.js")
 serverconfigObject=require('./serverconfig.js')
-var io = comms.createServer(serverconfigObject);
+var io = comms.createServer(serverconfigObject,(gameID)=>{return gameStatus==gameMode.LOBBY});
 var shared = require('./htmlQuinto/js/shared.js'); //get shared functions
 
 //const spawn = require("child_process").spawn;

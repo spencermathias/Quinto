@@ -39,6 +39,6 @@ For windows:
 		
 		var socket = io("192.168.1.xxx:8080"); // <- change this ip to the computers
 
-	4. From the projct folder, run: node .\rageServer.js 
+	4. From the projct folder, run: node quintoServer.js 
 
 	5. Open a browser and go to localhost or the ip address of the computer. The web page should appear with a dialog box asking for a username
